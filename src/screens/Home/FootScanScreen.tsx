@@ -5,7 +5,9 @@ import { useNavigation } from '@react-navigation/native';
 import { accelerometer, gyroscope, SensorTypes, setUpdateIntervalForType } from 'react-native-sensors';
 import { Observable, Subscription } from 'rxjs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-// import { detectA4Sheet } from '../../utils/opencvA4Detection';
+import axios from 'axios';
+// import { Alert } from 'react-native';
+// import { detectA4Sheet } from '../../utils/opencvA4Detection'
 
 // Define the types for our foot images
 type FootImage = {
@@ -52,6 +54,37 @@ const FootScanScreen = () => {
         z: 0
     });
 
+    // function for a4sheet detection from python server 
+
+    async function sendImageForDetection(photoUri: string) {
+        const formData = new FormData();
+        formData.append('image', {
+            uri: Platform.OS === 'android' ? 'file://' + photoUri : photoUri,
+            type: 'image/jpeg',
+            name: 'photo.jpg',
+          });
+      
+        try {
+          const response = await axios.post('http://192.168.83.30:5000/detect-sheet', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+      
+          if (response.data.a4_detected) {
+            console.log('A4 Sheet Detected ✅');
+            return true;
+            // Proceed with saving image
+          } else {
+            Alert.alert('No A4 Sheet detected', 'Please retake the picture');
+            return false;
+          }
+        } catch (error) {
+          console.error(error); 
+          Alert.alert('Error', 'Something went wrong while detecting');
+        }
+      }
+
     const [rectAnim] = useState(new Animated.Value(0)); // for rotation (not strictly needed for direct transform)
 
     const checkOrientation = (x: number, y: number, z: number): boolean => {
@@ -83,10 +116,9 @@ const FootScanScreen = () => {
                 if (currentFoot === 'left') {
                     // For left foot outside view, phone should be tilted left
                     return x > 7 && isNotTiltedForward;
-                    // return false
                 } else {
                     // For right foot outside view, phone should be tilted left
-                    return x < -7 && isNotTiltedForward;
+                    return x > 7 && isNotTiltedForward;
                 }
 
             case 'right':
@@ -95,7 +127,7 @@ const FootScanScreen = () => {
                     return x < -7 && isNotTiltedForward;
                 } else {
                     // For right foot inside view, phone should be tilted right
-                    return x > 7 && isNotTiltedForward;
+                    return x < -7 && isNotTiltedForward;
                 }
 
             case 'front':
@@ -167,9 +199,9 @@ const FootScanScreen = () => {
                 const photo = await camera.current.takePhoto({
                     flash: 'off',
                 });
-                console.log('Photo taken successfully:', photo);
+                console.log('Photo taken successfully:', photo.path);
                 // Check for A4 sheet in the image
-                const a4Detected = await checkForA4Sheet(photo.path);
+                const a4Detected = await  sendImageForDetection(photo.path);
                 if (!a4Detected) {
                     Alert.alert('No A4 Sheet Detected', 'Please place your foot on an A4 sheet and try again.');
                     return;
@@ -268,15 +300,28 @@ const FootScanScreen = () => {
         // Only use X and Y values for movement, ignore Z
         switch (currentView) {
             case 'left':
-                dx = (debugInfo.x - (currentFoot === 'left' ? 7.5 : -7.5)) * -SENSITIVITY_X;
+                if (currentFoot === 'left') {
+                    // For left foot outside view, phone should be tilted left
+                    dx = (debugInfo.x - 7.5) * -SENSITIVITY_X;
+                } else {
+                    // For right foot outside view, phone should be tilted left
+                    dx = (debugInfo.x - 7.5) * -SENSITIVITY_X;
+                }
                 dy = debugInfo.y * -SENSITIVITY_Y;
                 break;
             case 'right':
-                dx = (debugInfo.x - (currentFoot === 'left' ? -7.5 : 7.5)) * -SENSITIVITY_X;
+                if (currentFoot === 'left') {
+                    // For left foot inside view, phone should be tilted right
+                    dx = (debugInfo.x + 7.5) * SENSITIVITY_X;
+                } else {
+                    // For right foot inside view, phone should be tilted right
+                    dx = (debugInfo.x + 7.5) * SENSITIVITY_X;
+                }
                 dy = debugInfo.y * -SENSITIVITY_Y;
                 break;
             case 'front':
-                dx = debugInfo.x * -SENSITIVITY_X;
+                // For front view, phone should be vertical with minimal tilt
+                dx = debugInfo.x * (currentFoot === 'left' ? -SENSITIVITY_X : SENSITIVITY_X);
                 dy = debugInfo.y * -SENSITIVITY_Y;
                 break;
             default:

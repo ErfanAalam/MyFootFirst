@@ -39,7 +39,7 @@ const AppTabs = () => (
           if (route.name === 'Home') {
             iconName = 'home';
           } else if (route.name === 'Profile') {
-            iconName = 'user';
+            iconName = 'user-alt';
           } else if (route.name === 'Education') {
             iconName = 'book';  // You can choose any icon you like for Education
           } else if (route.name === 'Ecommerce') {
