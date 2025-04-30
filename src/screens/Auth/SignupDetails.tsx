@@ -234,6 +234,7 @@ const SignupDetails = () => {
 
         <TextInput
           placeholder="First Name"
+          placeholderTextColor="#999"
           style={styles.input}
           value={firstName}
           onChangeText={setFirstName}
@@ -241,6 +242,7 @@ const SignupDetails = () => {
 
         <TextInput
           placeholder="Surname"
+          placeholderTextColor="#999"
           style={styles.input}
           value={surname}
           onChangeText={setSurname}
@@ -248,6 +250,7 @@ const SignupDetails = () => {
 
         <TextInput
           placeholder="Email Address"
+          placeholderTextColor="#999"
           style={styles.input}
           keyboardType="email-address"
           value={email}
@@ -256,6 +259,7 @@ const SignupDetails = () => {
 
         <TextInput
           placeholder="Password"
+          placeholderTextColor="#999"
           style={styles.input}
           secureTextEntry
           value={password}
@@ -264,6 +268,7 @@ const SignupDetails = () => {
 
         <TextInput
           placeholder="Confirm Password"
+          placeholderTextColor="#999"
           style={styles.input}
           secureTextEntry
           value={confirmPassword}
@@ -286,6 +291,7 @@ const SignupDetails = () => {
           <Text style={styles.codeText}>+{callingCode}</Text>
           <TextInput
             placeholder="Phone Number (optional)"
+            placeholderTextColor="#999"
             style={styles.phoneInput}
             keyboardType="phone-pad"
             value={phone}
@@ -359,6 +365,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 15,
+    color: '#000',
   },
   countryRow: {
       borderWidth: 1,
@@ -387,6 +394,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    color: '#000',
   },
   dateInput: {
     borderWidth: 1,

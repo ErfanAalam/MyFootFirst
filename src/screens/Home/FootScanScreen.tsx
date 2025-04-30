@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image, ScrollView, Animated, Platform } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { useNavigation } from '@react-navigation/native';
 import { accelerometer, gyroscope, SensorTypes, setUpdateIntervalForType } from 'react-native-sensors';
 import { Observable, Subscription } from 'rxjs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import axios from 'axios';
-// import { Alert } from 'react-native';
-// import { detectA4Sheet } from '../../utils/opencvA4Detection'
+
 
 // Define the types for our foot images
 type FootImage = {
@@ -25,7 +24,6 @@ interface SensorData {
 
 const FootScanScreen = () => {
     const [capturedImages, setCapturedImages] = useState<FootImage[]>([]);
-    const [isA4Detected, setIsA4Detected] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
     const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -37,9 +35,7 @@ const FootScanScreen = () => {
     const device = useCameraDevice('back');
     const camera = useRef<Camera>(null);
     const { width, height } = Dimensions.get('window');
-    const degToRad = (degrees: number) => {
-        return degrees * (Math.PI / 180);
-    };
+
 
     const radToDeg = (rad: number) => {
         return rad * (180 / Math.PI);
@@ -85,7 +81,6 @@ const FootScanScreen = () => {
         }
       }
 
-    const [rectAnim] = useState(new Animated.Value(0)); // for rotation (not strictly needed for direct transform)
 
     const checkOrientation = (x: number, y: number, z: number): boolean => {
         // Calculate tilt angle using arctan2
@@ -162,35 +157,6 @@ const FootScanScreen = () => {
         };
     }, [currentView]); // Added currentView as dependency
 
-    const getOrientationInstructions = (): string => {
-        if (isOrientationCorrect) {
-            return 'Perfect! Tap to capture';
-        }
-
-        switch (currentView) {
-            case 'left':
-                return `Tilt your phone to the left (between 50-70 degrees) for ${currentFoot} foot outside view`;
-            case 'right':
-                return `Tilt your phone to the right (between 50-70 degrees) for ${currentFoot} foot inside view`;
-            case 'front':
-                return 'Hold your phone vertically and level for top view';
-            default:
-                return 'Adjust phone orientation';
-        }
-    };
-
-    // Function to check if A4 sheet is detected in the image
-    const checkForA4Sheet = async (imagePath: string): Promise<boolean> => {
-        try {
-            // const isA4Detected = await detectA4Sheet(imagePath);
-            // setIsA4Detected(isA4Detected);
-            // return isA4Detected;
-            return true;
-        } catch (error) {
-            console.error('Error checking for A4 sheet:', error);
-            return false;
-        }
-    };
 
     const handleCapture = async () => {
         if (camera.current) {
@@ -204,10 +170,11 @@ const FootScanScreen = () => {
                 const a4Detected = await  sendImageForDetection(photo.path);
                 if (!a4Detected) {
                     Alert.alert('No A4 Sheet Detected', 'Please place your foot on an A4 sheet and try again.');
-                    return;
+                    return; 
                 }
-                // Only set currentImage for preview, do not add to capturedImages yet
+    
                 setCurrentImage(photo.path);
+
                 setShowPreview(true);
                 Alert.alert('Success', 'Image captured successfully!');
             } catch (error) {
@@ -420,6 +387,9 @@ const FootScanScreen = () => {
                 />
                 <View style={styles.overlay}>
                     {renderFootGuide()}
+                    <View style={styles.floatingMessage}>
+                        <Text style={styles.floatingMessageText}>Please take the image from closer to get better quality</Text>
+                    </View>
                 </View>
                 <TouchableOpacity
                     style={[styles.captureButton, !isOrientationCorrect && styles.disabledButton]}
@@ -876,6 +846,21 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.7)',
         // borderRadius: 8,
         backgroundColor: 'transparent',
+    },
+    floatingMessage: {
+        position: 'absolute',
+        top: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        padding: 10,
+        borderRadius: 5,
+        width: '100%',
+        alignItems: 'center',
+    },
+    floatingMessageText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
     },
 });
 

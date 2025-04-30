@@ -75,7 +75,7 @@ const HomeScreen = () => {
           const userDoc = await firestore().collection("users").doc(currentUser.uid).get();
           if (userDoc.exists) {
             const userData = userDoc.data();
-            setUsername(userData?.firstName || "User");
+            setUsername(userData?.firstName + " " + userData?.surname || "User");
           } else {
             console.log("User document does not exist.");
           }
@@ -95,6 +95,7 @@ const HomeScreen = () => {
         : [...prev, pointId]
     );
   };
+  console.log(painPoints);
 
   return (
     <SafeAreaView style={styles.container}>

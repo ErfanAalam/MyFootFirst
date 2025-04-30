@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity, Text, Image } from "react-native";
-import {Svg,  Circle } from "react-native-svg";
+import { Svg, Circle, Rect } from "react-native-svg";
 
 interface FootDiagramProps {
   foot: "left" | "right";
@@ -11,39 +11,31 @@ interface FootDiagramProps {
 // (Your LeftPainPoints and RightPainPoints here)
 // Create left and right foot pain points with unique IDs
 const LeftPainPoints = [
-    { id: "left-toes", label: "Toes", x: 180, y: 30 },
-    { id: "left-midfoot1", label: "Midfoot", x: 150, y: 30 },
-    { id: "left-midfoot2", label: "Midfoot", x: 130, y: 30 },
-    { id: "left-midfoot3", label: "Midfoot", x: 110, y: 40 },
-    { id: "left-midfoot4", label: "Midfoot", x: 90, y: 60 },
-    { id: "left-midfoot5", label: "Midfoot", x: 170, y: 90 },
-    { id: "left-midfoot6", label: "Midfoot", x: 120, y: 90 },
-    { id: "left-ball", label: "Ball of foot", x: 110, y: 130 },
-    { id: "left-midfoot7", label: "Midfoot", x: 170, y: 150 },
-    { id: "left-midfoot8", label: "Midfoot", x: 110, y: 190 },
-    { id: "left-ankle1", label: "Ankle", x: 160, y: 210 },
-    { id: "left-arch", label: "Arch", x: 160, y: 240 },
-    { id: "left-ankle2", label: "Ankle", x: 120, y: 250 },
-    { id: "left-heel", label: "Heel", x: 140, y: 280 },
-  ];
+  { id: "left-Hammer-toe", label: "Hammer-Toe", x: 153, y: 45, w: 15, h: 20, rx: 5, ry: 10 },
+  { id: "left-Ball of Foot Pain", label: "Ball of Foot Pain", x: 155, y: 75, w: 20, h: 20, rx: 15, ry: 15 },
+  { id: "left-Bunion Big Toe", label: "Bunion Big Toe", x: 185, y: 90, w: 25, h: 35, rx: 15, ry: 25 },
+  { id: "left-Bunionette Little Toe", label: "Bunionette Little Toe", x: 115, y: 115, w: 25, h: 35, rx: 15, ry: 25 },
+  { id: "left-Metatarsalgia", label: "Metatarsalgia", x: 150, y: 100, w: 55, h: 25, rx: 25, ry: 35 },
+  { id: "left-Morton's Neuroma", label: "Morton's Neuroma", x: 145, y: 150, w: 35, h: 25, rx: 25, ry: 35 },
+  { id: "left-High Arches / Arch Pain", label: "High Arches/Arch Pain ", x: 175, y: 200, w: 25, h: 45, rx: 25, ry: 35 },
+  { id: "left-Plantar Fasciitis", label: "Plantar Fasciitis", x: 155, y: 235, w: 55, h: 25, rx: 25, ry: 35 },
+  { id: "left-Heel Pain/Achilles Pain", label: "Heel Pain/Achilles Pain", x: 155, y: 265, w: 35, h: 20, rx: 25, ry: 35 },
+];
+
 
 
 const RightPainPoints = [
-    { id: "right-toes", label: "Toes", x: 190, y: 30 },
-    { id: "right-midfoot1", label: "Midfoot", x: 160, y: 30 },
-    { id: "right-midfoot2", label: "Midfoot", x: 140, y: 30 },
-    { id: "right-midfoot3", label: "Midfoot", x:115, y: 40 },
-    { id: "right-midfoot4", label: "Midfoot", x: 100, y: 60 },
-    { id: "right-midfoot5", label: "Midfoot", x: 180, y: 90 },
-    { id: "right-midfoot6", label: "Midfoot", x: 120, y: 90 },
-    { id: "right-ball", label: "Ball of foot", x: 120, y: 130 },
-    { id: "right-midfoot7", label: "Midfoot", x: 170, y: 150 },
-    { id: "right-midfoot8", label: "Midfoot", x: 130, y: 190 },
-    { id: "right-ankle1", label: "Ankle", x: 170, y: 210 },
-    { id: "right-arch", label: "Arch", x: 170, y: 240 },
-    { id: "right-ankle2", label: "Ankle", x: 130, y: 250 },
-    { id: "right-heel", label: "Heel", x: 150, y: 280 },
-  ];
+  { id: "right-Hammer-toe", label: "Hammer-Toe", x: 147, y: 45, w: 15, h: 20, rx: 5, ry: 10 },
+  { id: "right-Ball of Foot Pain", label: "Ball of Foot Pain", x: 149, y: 75, w: 20, h: 20, rx: 15, ry: 15 },
+  { id: "right-Bunion Big Toe", label: "Bunion Big Toe", x: 182, y: 90, w: 25, h: 35, rx: 15, ry: 25 },
+  { id: "right-Bunionette Little Toe", label: "Bunionette Little Toe", x: 112, y: 115, w: 25, h: 35, rx: 15, ry: 25 },
+  { id: "right-Metatarsalgia", label: "Metatarsalgia", x: 145, y: 100, w: 55, h: 25, rx: 25, ry: 35 },
+  { id: "right-Morton's Neuroma", label: "Morton's Neuroma", x: 135, y: 150, w: 35, h: 25, rx: 25, ry: 35 },
+  { id: "right-High Arches / Arch Pain", label: "High Arches/Arch Pain ", x: 180, y: 200, w: 25, h: 45, rx: 25, ry: 35 },
+  { id: "right-Plantar Fasciitis", label: "Plantar Fasciitis", x: 160, y: 235, w: 55, h: 25, rx: 25, ry: 35 },
+  { id: "right-Heel Pain/Achilles Pain", label: "Heel Pain/Achilles Pain", x: 160, y: 265, w: 35, h: 20, rx: 25, ry: 35 },
+];
+
 
 const FootDiagram: React.FC<FootDiagramProps> = ({
   foot,
@@ -59,8 +51,8 @@ const FootDiagram: React.FC<FootDiagramProps> = ({
       <Image
         source={
           foot === "left"
-            ? require("../assets/images/leftFoot.jpeg") // ✅ fixed path
-            : require("../assets/images/rightFoot.jpeg")
+            ? require("../assets/images/leftFoot.png") // ✅ fixed path
+            : require("../assets/images/rightFoot.png")
         }
         style={styles.footImage}
         resizeMode="contain"
@@ -68,11 +60,14 @@ const FootDiagram: React.FC<FootDiagramProps> = ({
 
       <Svg height="300" width="300" style={styles.svgOverlay}>
         {points.map((point) => (
-          <Circle
+          <Rect
             key={point.id}
-            cx={getAdjustedX(point.x)}
-            cy={point.y}
-            r={8}
+            x={getAdjustedX(point.x) - point.w / 2}
+            y={point.y - point.h / 2}
+            width={point.w}
+            height={point.h}
+            rx={point.rx}
+            ry={point.ry}
             fill={
               selectedPoints.includes(point.id)
                 ? "#00843D"
