@@ -12,8 +12,8 @@ import { Card, Button } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import firestore from '@react-native-firebase/firestore';
-import auth from '@react-native-firebase/auth';  
+import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
+import { getAuth } from '@react-native-firebase/auth';
 import FootDiagram from "../../Components/FootDiagram";
 // import FootScanScreen from './FootScanScreen'
 
@@ -69,10 +69,13 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const currentUser = auth().currentUser;
+      const currentUser = getAuth().currentUser;
       if (currentUser) {
         try {
-          const userDoc = await firestore().collection("users").doc(currentUser.uid).get();
+          const firestore = getFirestore();
+          const userDocRef = doc(firestore, "users", currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
           if (userDoc.exists) {
             const userData = userDoc.data();
             setUsername(userData?.firstName + " " + userData?.surname || "User");
@@ -178,7 +181,7 @@ const HomeScreen = () => {
           <Button
             mode="outlined"
             style={styles.showAllButton}
-            // onPress={() => navigation.navigate("AllProducts")}
+            onPress={() => navigation.navigate("InsoleQuestions")}
           >
             <Text style={styles.showAllButtonText}>Show All</Text>
           </Button>

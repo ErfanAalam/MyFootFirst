@@ -1,51 +1,53 @@
 // src/navigation/RootNavigator.tsx
 import React from 'react';
-import {useEffect,useState} from 'react'
+import { useEffect, useState } from 'react'
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaView, StatusBar, Platform } from 'react-native';
 import AuthStack from './AuthStack';
 import AppTabs from './AppTabs';
 import FootScanScreen from '../screens/Home/FootScanScreen';
 import SplashScreen from '../screens/SplashScreen';
-import auth from '@react-native-firebase/auth';
+import { getAuth, onAuthStateChanged } from '@react-native-firebase/auth';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import InsoleQuestions from '../screens/Home/InsoleQuestions';
 
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
-     const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-     const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      const unsubscribe = auth().onAuthStateChanged(user => {
-        if (user) {
-          setIsLoggedIn(true);
-        } else {
-          setIsLoggedIn(false);
-        }
-      });
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      if (user) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    });
 
-      // Show splash screen for 2 seconds
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 2000);
+    // Show splash screen for 2 seconds
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
 
-      return () => {
-        unsubscribe();
-        clearTimeout(timer);
-      };
-    }, []);
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
+  }, []);
 
-    if (isLoading) {
-      return <SplashScreen />;
-    }
+  if (isLoading) {
+    return <SplashScreen />;
+  }
 
   return (
-    <SafeAreaView style={{ flex: 1}}>
+    <SafeAreaView style={{ flex: 1 }}>
       <StatusBar backgroundColor="#ffffff" barStyle="light-content" />
       <NavigationContainer>
         {isLoggedIn ? (
-          <Stack.Navigator screenOptions={{ 
+          <Stack.Navigator screenOptions={{
             headerShown: false,
             headerStyle: {
               backgroundColor: '#ffffff',
@@ -54,6 +56,7 @@ const RootNavigator = () => {
           }}>
             <Stack.Screen name="MainTabs" component={AppTabs} />
             <Stack.Screen name="FootScanScreen" component={FootScanScreen} />
+            <Stack.Screen name="InsoleQuestions" component={InsoleQuestions}/>
           </Stack.Navigator>
         ) : (
           <AuthStack />

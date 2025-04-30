@@ -167,7 +167,7 @@ const FootScanScreen = () => {
                 });
                 console.log('Photo taken successfully:', photo.path);
                 // Check for A4 sheet in the image
-                const a4Detected = await  sendImageForDetection(photo.path);
+                const a4Detected = await sendImageForDetection(photo.path);
                 if (!a4Detected) {
                     Alert.alert('No A4 Sheet Detected', 'Please place your foot on an A4 sheet and try again.');
                     return; 

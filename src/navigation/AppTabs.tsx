@@ -91,6 +91,7 @@ const AppTabs = () => (
       <Tab.Screen name="Education" component={EducationScreen} />
       <Tab.Screen name="Ecommerce" component={EcommerceScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+      
     </Tab.Navigator>
   </SafeAreaProvider>
 );

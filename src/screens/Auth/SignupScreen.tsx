@@ -12,7 +12,7 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
+import { getAuth, createUserWithEmailAndPassword } from '@react-native-firebase/auth';
 
 const { width } = Dimensions.get('window');
 
@@ -34,10 +34,10 @@ const SignupScreen = () => {
       const { idToken } = await GoogleSignin.signIn();
   
       // Create a Google credential with the token
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      const googleCredential = getAuth().GoogleAuthProvider.credential(idToken);
   
       // Sign-in the user with the credential
-      const userCredential = await auth().signInWithCredential(googleCredential);
+      const userCredential = await getAuth().signInWithCredential(googleCredential);
   
       // Optional: Check if it's a new user or existing user
       const isNewUser = userCredential.additionalUserInfo?.isNewUser;

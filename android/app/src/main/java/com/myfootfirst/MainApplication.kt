@@ -1,4 +1,4 @@
-package com.myfirstfoot
+package com.myfootfirst
 
 import android.app.Application
 import com.facebook.react.PackageList

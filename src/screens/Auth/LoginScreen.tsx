@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Image,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
+import { getAuth, signInWithEmailAndPassword, signOut } from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 
@@ -22,8 +22,8 @@ type RootStackParamList = {
 
 // Export the logout function so it can be used by other screens
 export const handleLogout = async (navigation: NavigationProp<RootStackParamList>) => {
-  try {
-    await auth().signOut();
+  try { 
+    await getAuth().signOut();
     console.log('User signed out successfully');
     // The RootNavigator will automatically redirect to AuthStack
     // which contains the Welcome screen as its first screen
@@ -40,8 +40,7 @@ const LoginScreen = () => {
   const handleLogin = () => {
     console.log('Login pressed with:', email, password);
     // Implement your login logic here
-    auth()
-      .signInWithEmailAndPassword(email, password)
+    getAuth().signInWithEmailAndPassword(email, password)
       .then(userCredential => {
         console.log('Logged in!', userCredential.user.email);
         navigation.navigate('MainTabs');

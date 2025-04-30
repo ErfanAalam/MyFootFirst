@@ -6,7 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
+import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { Alert } from 'react-native';
@@ -36,7 +36,7 @@ const Goals = ({ route }) => {
 
     const handleSignUp = async () => {
           try {
-           const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+           const userCredential = await getAuth().createUserWithEmailAndPassword(email, password);
             // Optionally, save user data to Firestore
            await firestore()
              .collection('users')

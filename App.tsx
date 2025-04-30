@@ -4,6 +4,7 @@ import {useEffect} from 'react'
 import { Platform } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { PaperProvider } from 'react-native-paper';
 import RootNavigator from './src/navigation/RootNavigator.tsx'
 
 const App = () => {
@@ -18,7 +19,9 @@ const App = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <RootNavigator />
+      <PaperProvider>
+        <RootNavigator />
+      </PaperProvider>
     </GestureHandlerRootView>
   );
 };

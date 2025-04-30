@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import { handleLogout } from '../Auth/LoginScreen';
-import auth from '@react-native-firebase/auth';
+import { getAuth } from '@react-native-firebase/auth';
 
 // Define navigation types
 type RootStackParamList = {
@@ -16,7 +16,7 @@ type RootStackParamList = {
 
 const ProfileScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const user = auth().currentUser;
+  const user = getAuth().currentUser;
 
   const handlePress = () => {
     Alert.alert('Button Pressed!', 'GestureHandlerRootView is working!');
