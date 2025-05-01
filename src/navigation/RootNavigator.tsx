@@ -10,6 +10,8 @@ import SplashScreen from '../screens/SplashScreen';
 import { getAuth, onAuthStateChanged } from '@react-native-firebase/auth';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import InsoleQuestions from '../screens/Home/InsoleQuestions';
+import InsoleRecommendation from '../screens/Home/InsoleRecommendation';
+import ProductDetailScreen from '../screens/Home/ProductDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -57,6 +59,8 @@ const RootNavigator = () => {
             <Stack.Screen name="MainTabs" component={AppTabs} />
             <Stack.Screen name="FootScanScreen" component={FootScanScreen} />
             <Stack.Screen name="InsoleQuestions" component={InsoleQuestions}/>
+            <Stack.Screen name="InsoleRecommendation" component={InsoleRecommendation}/>
+            <Stack.Screen name="ProductDetail" component={ProductDetailScreen}/>
           </Stack.Navigator>
         ) : (
           <AuthStack />

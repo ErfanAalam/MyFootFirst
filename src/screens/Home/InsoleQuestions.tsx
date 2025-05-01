@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,20 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
   Alert,
 } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Button, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useUser } from '../../contexts/UserContext';
 
+type RootStackParamList = {
+  InsoleQuestions: undefined;
+  InsoleRecommendation: { recommendedInsole: 'Sport' | 'Comfort' | 'Stability' };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'InsoleQuestions'>;
 
 type AnswerType = {
   ageGroup: string;
@@ -23,7 +29,6 @@ type AnswerType = {
   painFrequency: string;
   footPosture: string;
   archType: string;
-  shoeSize: string;
   medicalCondition: string;
 };
 
@@ -40,11 +45,12 @@ const options = {
   painFrequency: ['Sometimes', 'Regularly', 'Permanently'],
   footPosture: ['Normal', 'Rolling Inwards', 'Rolling Outwards'],
   archType: ['Flat', 'Normal', 'High Arch'],
-  shoeSize: ['EU 40', 'EU 41', 'EU 42', 'US 7', 'US 8', 'UK 6', 'UK 7'],
   medicalConditions: ['None', 'Plantar Fasciitis', 'Bunions', 'Others'],
 };
 
 const InsoleQuestions = () => {
+  const navigation = useNavigation<NavigationProp>();
+  const { userData, saveInsoleAnswers } = useUser();
   const [answers, setAnswers] = useState<AnswerType>({
     ageGroup: '',
     activityLevel: '',
@@ -52,9 +58,18 @@ const InsoleQuestions = () => {
     painFrequency: '',
     footPosture: '',
     archType: '',
-    shoeSize: '',
     medicalCondition: '',
   });
+
+  // Load previous answers if they exist
+  // useEffect(() => {
+  //   if (userData?.insoleAnswers) {
+  //     setAnswers(prev => ({
+  //       ...prev,
+  //       ...userData.insoleAnswers,
+  //     }));
+  //   }
+  // }, [userData]);
 
   const [modalField, setModalField] = useState<keyof AnswerType | null>(null);
 
@@ -63,43 +78,62 @@ const InsoleQuestions = () => {
     setModalField(null);
   };
 
-  const calculateRecommendation = () => {
-    if(answers.ageGroup === '' || answers.activityLevel === '' || answers.painLocation === '' || answers.painFrequency === '' || answers.footPosture === '' || answers.archType === '' || answers.shoeSize === '' || answers.medicalCondition === '') {
+  const calculateRecommendation = async () => {
+    if(answers.ageGroup === '' || answers.activityLevel === '' || answers.painLocation === '' || answers.painFrequency === '' || answers.footPosture === '' || answers.archType === '' || answers.medicalCondition === '') {
       Alert.alert('Please answer all questions before submitting.');
       return;
     }
-    const scores: ScoreType = { Sport: 0, Comfort: 0, Stability: 0 };
 
-    if (answers.ageGroup === '18-40') scores.Sport += 25;
-    else if (answers.ageGroup === '41-60') scores.Comfort += 25;
-    else if (answers.ageGroup === '60+') scores.Stability += 25;
+    // Save answers to Firestore via UserContext, excluding ageGroup and activityLevel
+    try {
 
-    if (answers.activityLevel === 'Active') scores.Sport += 25;
-    else if (answers.activityLevel === 'Moderate') scores.Comfort += 25;
-    else if (answers.activityLevel === 'Sedentary') scores.Stability += 25;
+      const scores: ScoreType = { Sport: 0, Comfort: 0, Stability: 0 };
 
-    if (answers.painLocation === 'Forefoot') scores.Sport += 20;
-    else if (['Heel', 'Lower Back', 'Knee'].includes(answers.painLocation)) scores.Stability += 20;
-    else scores.Comfort += 20;
+      if (answers.ageGroup === '18-40') scores.Sport += 25;
+      else if (answers.ageGroup === '41-60') scores.Comfort += 25;
+      else if (answers.ageGroup === '60+') scores.Stability += 25;
+  
+      if (answers.activityLevel === 'Active') scores.Sport += 25;
+      else if (answers.activityLevel === 'Moderate') scores.Comfort += 25;
+      else if (answers.activityLevel === 'Sedentary') scores.Stability += 25;
+  
+      if (answers.painLocation === 'Forefoot') scores.Sport += 20;
+      else if (['Heel', 'Lower Back', 'Knee'].includes(answers.painLocation)) scores.Stability += 20;
+      else scores.Comfort += 20;
+  
+      if (answers.painFrequency === 'Sometimes') scores.Comfort += 15;
+      else if (answers.painFrequency === 'Regularly') scores.Comfort += 15;
+      else if (answers.painFrequency === 'Permanently') scores.Stability += 15;
+      else scores.Sport += 15;
+  
+      if (answers.footPosture === 'Rolling Inwards') scores.Stability += 10;
+      else if (answers.footPosture === 'Rolling Outwards') scores.Comfort += 10;
+      else if (answers.footPosture === 'Normal') scores.Sport += 10;
+  
+      if (answers.archType === 'Flat') scores.Stability += 5;
+      else if (answers.archType === 'High Arch') scores.Sport += 5;
+      else scores.Comfort += 5;
+  
+      const recommended = Object.keys(scores).reduce((a, b) =>
+        scores[a as keyof ScoreType] > scores[b as keyof ScoreType] ? a : b
+      ) as keyof ScoreType;
+  
 
-    if (answers.painFrequency === 'Sometimes') scores.Comfort += 15;
-    else if (answers.painFrequency === 'Regularly') scores.Comfort += 15;
-    else if (answers.painFrequency === 'Permanently') scores.Stability += 15;
-    else scores.Sport += 15;
-
-    if (answers.footPosture === 'Rolling Inwards') scores.Stability += 10;
-    else if (answers.footPosture === 'Rolling Outwards') scores.Comfort += 10;
-    else if (answers.footPosture === 'Normal') scores.Sport += 10;
-
-    if (answers.archType === 'Flat') scores.Stability += 5;
-    else if (answers.archType === 'High Arch') scores.Sport += 5;
-    else scores.Comfort += 5;
-
-    const recommended = Object.keys(scores).reduce((a, b) =>
-      scores[a as keyof ScoreType] > scores[b as keyof ScoreType] ? a : b
-    ) as keyof ScoreType;
-
-    Alert.alert(`Based on your inputs, we recommend: ${recommended} Insole`);
+      const answersToSave = {
+        painLocation: answers.painLocation,
+        painFrequency: answers.painFrequency,
+        footPosture: answers.footPosture,
+        archType: answers.archType,
+        medicalCondition: answers.medicalCondition,
+      };
+      
+      navigation.navigate('InsoleRecommendation', { recommendedInsole: recommended });
+      const result = await saveInsoleAnswers(answersToSave);
+      console.log('Result:', result);
+    } catch (error) {
+      console.error('Error saving answers to Firestore:', error);
+      Alert.alert('Failed to save your answers. Please try again.');
+    }
   };
 
   const renderPicker = (label: string, field: keyof AnswerType, items: string[]) => (
@@ -109,9 +143,15 @@ const InsoleQuestions = () => {
         onPress={() => setModalField(field)}
         style={styles.selectBox}
       >
-        <Text style={styles.selectText}>
+        <Text style={answers[field] ? styles.selectedText : styles.selectText}>
           {answers[field] || 'Select an option'}
         </Text>
+        <IconButton
+          icon="chevron-down"
+          size={20}
+          iconColor="#666"
+          style={styles.selectIcon}
+        />
       </TouchableOpacity>
       {modalField === field && (
         <Modal transparent={true} animationType="slide">
@@ -123,10 +163,15 @@ const InsoleQuestions = () => {
                 keyExtractor={item => item}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={styles.modalItem}
+                    style={[
+                      styles.modalItem,
+                      answers[field] === item && styles.selectedModalItem
+                    ]}
                     onPress={() => updateAnswer(field, item)}
                   >
-                    <Text>{item}</Text>
+                    <Text style={answers[field] === item ? styles.selectedItemText : styles.modalItemText}>
+                      {item}
+                    </Text>
                   </TouchableOpacity>
                 )}
               />
@@ -139,7 +184,7 @@ const InsoleQuestions = () => {
   );
   
   const renderProgressBar = () => {
-    const totalQuestions = 8; // Total number of questions
+    const totalQuestions = 7; // Total number of questions reduced by 1
     const answeredQuestions = Object.values(answers).filter(answer => answer !== '').length;
     const progress = (answeredQuestions / totalQuestions) * 100;
 
@@ -156,31 +201,39 @@ const InsoleQuestions = () => {
       <Text style={styles.headerSubtitle}>Your answers help us personalise your insole recommendation.</Text>
     </View>
   );
+
+  const renderNavigationHeader = () => (
+    <View style={styles.navigationHeader}>
+      <IconButton
+        icon="arrow-left"
+        size={24}
+        iconColor="#333"
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      />
+      <Text style={styles.navigationTitle}>Insole Questionnaire</Text>
+      <View style={styles.rightPlaceholder} />
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      > */}
-        <ScrollView contentContainerStyle={styles.container}>
-          {renderHeader()}
-          {renderProgressBar()}
-          {renderPicker('Age Group', 'ageGroup', options.ageGroup)}
-          {renderPicker('Activity Level', 'activityLevel', options.activityLevel)}
-          {renderPicker('Where do you feel pain?', 'painLocation', options.painLocation)}
-          {renderPicker('How often do you feel pain?', 'painFrequency', options.painFrequency)}
-          {renderPicker('How do your feet feel when standing?', 'How do your feet feel when standing?', options.footPosture)}
-          {renderPicker('Foot Arch Type', 'archType', options.archType)}
-          {renderPicker('Shoe Size', 'shoeSize', options.shoeSize)}
-          {renderPicker('Medical Conditions', 'medicalCondition', options.medicalConditions)}
+      {renderNavigationHeader()}
+      <ScrollView contentContainerStyle={styles.container}>
+        {renderHeader()}
+        {renderProgressBar()}
+        {renderPicker('Age Group', 'ageGroup', options.ageGroup)}
+        {renderPicker('Activity Level', 'activityLevel', options.activityLevel)}
+        {renderPicker('Where do you feel pain?', 'painLocation', options.painLocation)}
+        {renderPicker('How often do you feel pain?', 'painFrequency', options.painFrequency)}
+        {renderPicker('How do your feet feel when standing?', 'footPosture', options.footPosture)}
+        {renderPicker('Foot Arch Type', 'archType', options.archType)}
+        {renderPicker('Medical Conditions', 'medicalCondition', options.medicalConditions)}
 
-          <View style={styles.button}>
-            <Button mode="contained" onPress={calculateRecommendation}>
-              Get Recommendation
-            </Button>
-          </View>
-        </ScrollView>
-      {/* </KeyboardAvoidingView> */}
+        <TouchableOpacity style={styles.buttonContainer} onPress={calculateRecommendation}>
+          <Text style={styles.buttonText}>Get Recommendation</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -208,15 +261,36 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#f9f9f9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   selectText: {
     fontSize: 15,
     color: '#333',
+    flex: 1,
   },
-  button: {
-    marginTop: 30,
-    alignSelf: 'center',
-    width: '80%',
+  selectedText: {
+    fontSize: 15,
+    color: '#00843D',
+    fontWeight: '500',
+    flex: 1,
+  },
+  selectIcon: {
+    margin: 0,
+    padding: 0,
+  },
+  buttonContainer: {
+    backgroundColor: '#00843D',
+    borderRadius: 10,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   modalContainer: {
     flex: 1,
@@ -235,6 +309,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  selectedModalItem: {
+    backgroundColor: 'rgba(0, 132, 61, 0.1)',
+  },
+  modalItemText: {
+    color: '#333',
+  },
+  selectedItemText: {
+    color: '#00843D',
+    fontWeight: '500',
+  },
   modalTitle: {
     fontWeight: 'bold',
     fontSize: 16,
@@ -249,7 +333,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#00843D',
   },
   progressText: {
     textAlign: 'center',
@@ -271,6 +355,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     lineHeight: 22,
+  },
+  navigationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  backButton: {
+    margin: 0,
+  },
+  navigationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    flex: 1,
+  },
+  rightPlaceholder: {
+    width: 40,
   },
 });
 

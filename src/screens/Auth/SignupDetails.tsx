@@ -10,6 +10,7 @@ import {
   Platform,
   Keyboard,
   Alert,
+  Modal,
 } from 'react-native';
 import CountryPicker from 'react-native-country-picker-modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -25,6 +26,8 @@ const SignupDetails = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [dob, setDob] = useState('');
+  const [gender, setGender] = useState('');
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -37,7 +40,7 @@ const SignupDetails = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
-  const onSelectCountry = country => {
+  const onSelectCountry = (country: any) => {
     setCountryCode(country.cca2);
     setCallingCode(country.callingCode[0]);
     setCountry(country.name);
@@ -46,7 +49,7 @@ const SignupDetails = () => {
   const validateForm = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!firstName || !surname || !email || !password || !dob) {
+    if (!firstName || !surname || !email || !password || !dob || !gender) {
       Alert.alert("Validation Error", "All required fields must be filled.");
       return false;
     }
@@ -78,6 +81,7 @@ const SignupDetails = () => {
         countryCode,
         phone,
         callingCode,
+        gender,
         dob})
   };
 
@@ -134,17 +138,17 @@ const SignupDetails = () => {
     return Array.from({ length: daysInMonth }, (_, i) => i + 1);
   };
 
-  const handleYearSelect = (year) => {
+  const handleYearSelect = (year: number) => {
     setSelectedYear(year);
     setDatePickerStep('month');
   };
 
-  const handleMonthSelect = (month) => {
+  const handleMonthSelect = (month: number) => {
     setSelectedMonth(month);
     setDatePickerStep('day');
   };
 
-  const handleDaySelect = (day) => {
+  const handleDaySelect = (day: number) => {
     const date = new Date(selectedYear, selectedMonth, day);
     handleDateConfirm(date);
   };
@@ -227,6 +231,12 @@ const SignupDetails = () => {
     }
   };
 
+  // Handle gender selection
+  const handleGenderSelect = (selectedGender: string) => {
+    setGender(selectedGender);
+    setShowGenderDropdown(false);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -274,6 +284,58 @@ const SignupDetails = () => {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
+
+        {/* Gender Dropdown */}
+        <TouchableOpacity 
+          style={styles.input} 
+          onPress={() => setShowGenderDropdown(true)}
+        >
+          <Text style={gender ? styles.inputText : styles.placeholderText}>
+            {gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : 'Select Gender*'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Gender Dropdown Modal */}
+        <Modal
+          visible={showGenderDropdown}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowGenderDropdown(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowGenderDropdown(false)}
+          >
+            <View style={styles.dropdownContainer}>
+              <Text style={styles.dropdownTitle}>Select Gender</Text>
+              <TouchableOpacity 
+                style={styles.dropdownOption} 
+                onPress={() => handleGenderSelect('male')}
+              >
+                <Text style={styles.dropdownOptionText}>Male</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.dropdownOption} 
+                onPress={() => handleGenderSelect('female')}
+              >
+                <Text style={styles.dropdownOptionText}>Female</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.dropdownOption} 
+                onPress={() => handleGenderSelect('other')}
+              >
+                <Text style={styles.dropdownOptionText}>Other</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.dropdownCancelButton}
+                onPress={() => setShowGenderDropdown(false)}
+              >
+                <Text style={styles.dropdownCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         <View style={styles.countryRow}>
           <CountryPicker
@@ -410,7 +472,7 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   submitButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#00843D',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -501,6 +563,56 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: "100%",
     marginBottom: 15,
+  },
+  inputText: {
+    color: '#333',
+  },
+  placeholderText: {
+    color: '#999',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  dropdownContainer: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  dropdownTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 10,
+    color: '#00843D',
+  },
+  dropdownOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  dropdownOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  dropdownCancelButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  dropdownCancelText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'red',
   },
 });
 

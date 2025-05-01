@@ -12,9 +12,8 @@ import { Card, Button } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
-import { getAuth } from '@react-native-firebase/auth';
 import FootDiagram from "../../Components/FootDiagram";
+import { useUser } from "../../contexts/UserContext";
 // import FootScanScreen from './FootScanScreen'
 
 const { width } = Dimensions.get("window");
@@ -30,14 +29,14 @@ type Product = {
 type RootStackParamList = {
   Home: undefined;
   FootScanScreen: undefined;
-  AllProducts: undefined;
+  InsoleQuestions: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const [username, setUsername] = useState<string>("User");
+  const { userData } = useUser();
   const [selectedFoot, setSelectedFoot] = useState<"left" | "right">("left");
   const [painPoints, setPainPoints] = useState<string[]>([]);
   const [products, setProducts] = useState<Product[]>([
@@ -67,30 +66,6 @@ const HomeScreen = () => {
     },
   ]);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const currentUser = getAuth().currentUser;
-      if (currentUser) {
-        try {
-          const firestore = getFirestore();
-          const userDocRef = doc(firestore, "users", currentUser.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            setUsername(userData?.firstName + " " + userData?.surname || "User");
-          } else {
-            console.log("User document does not exist.");
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
   const handlePainPointSelection = (pointId: string) => {
     setPainPoints((prev) =>
       prev.includes(pointId)
@@ -98,14 +73,14 @@ const HomeScreen = () => {
         : [...prev, pointId]
     );
   };
-  console.log(painPoints);
+  // console.log(painPoints);
 
   return (
     <SafeAreaView style={styles.container}>
       <RNStatusBar backgroundColor="#000000" translucent={true} />
       <ScrollView>
         <View style={styles.header}>
-          <Text style={styles.username}>Hi, {username}</Text>
+          <Text style={styles.username}>Hi, {userData ? `${userData.firstName} ${userData.surname}` : "User"}</Text>
         </View>
 
         <View style={styles.fitCheckContainer}>
@@ -308,6 +283,7 @@ const styles = StyleSheet.create({
   productCard: {
     borderRadius: 10,
     overflow: 'hidden',
+    backgroundColor: "#fff",
   },
   productImage: {
     height: 120,

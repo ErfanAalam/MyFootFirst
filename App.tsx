@@ -6,6 +6,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import RootNavigator from './src/navigation/RootNavigator.tsx'
+import { UserProvider } from './src/contexts/UserContext';
 
 const App = () => {
 
@@ -18,9 +19,11 @@ const App = () => {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}> 
       <PaperProvider>
-        <RootNavigator />
+        <UserProvider>
+          <RootNavigator />
+        </UserProvider>
       </PaperProvider>
     </GestureHandlerRootView>
   );

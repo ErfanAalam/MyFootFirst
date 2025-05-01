@@ -9,13 +9,34 @@ import {
 import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { Alert } from 'react-native';
 
+type RootStackParamList = {
+  Goals: {
+    firstName: string;
+    surname: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    country: string;
+    countryCode: string;
+    phone: string;
+    callingCode: string;
+    dob: string;
+    gender: string;
+  };
+  Home: undefined;
+};
 
-const Goals = ({ route }) => {
-    const navigation = useNavigation();
+type GoalsRouteProp = RouteProp<RootStackParamList, 'Goals'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Goals'>;
+
+const Goals = ({ route }: { route: GoalsRouteProp }) => {
+    const navigation = useNavigation<NavigationProp>();
     const { firstName, surname, email, password, confirmPassword, country,
-        countryCode, phone, callingCode, dob } = route.params;
+        countryCode, phone, callingCode, dob, gender } = route.params;
 
   const [selectedLevel, setSelectedLevel] = useState('active');
 
@@ -52,9 +73,10 @@ const Goals = ({ route }) => {
                callingCode,
                dob,
                activityLevel: selectedLevel,
+               gender,
              });
-        navigation.navigate("Home")
-          } catch (error) {
+        navigation.navigate('Home');
+          } catch (error: any) {
             console.error('Error signing up:', error);
              Alert.alert("Signup Error", error.message);
           }
@@ -74,10 +96,16 @@ const Goals = ({ route }) => {
         {activityLevels.map((level) => (
           <TouchableOpacity
             key={level.id}
-            style={styles.optionContainer}
+            style={[
+              styles.optionContainer,
+              selectedLevel === level.id && styles.optionContainerSelected
+            ]}
             onPress={() => setSelectedLevel(level.id)}
           >
             <View style={styles.radioWrapper}>
+              <View style={styles.textContainer}>
+                <Text style={styles.optionTitle}>{level.title}</Text>
+              </View>
               <View
                 style={[
                   styles.radioOuter,
@@ -85,9 +113,6 @@ const Goals = ({ route }) => {
                 ]}
               >
                 {selectedLevel === level.id && <View style={styles.radioInner} />}
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.optionTitle}>{level.title}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -136,11 +161,18 @@ const styles = StyleSheet.create({
   optionContainer: {
     marginBottom: 16,
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    borderRadius: 8,
+  },
+  optionContainerSelected: {
+    borderColor: '#00843D',
   },
   radioWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent:"center"
+    justifyContent: 'space-between',
   },
   radioOuter: {
     height: 22,
@@ -152,19 +184,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioOuterSelected: {
-    borderColor: '#2D68FF',
+    borderColor: '#00843D',
   },
   radioInner: {
     height: 12,
     width: 12,
     borderRadius: 6,
-    backgroundColor: '#2D68FF',
-  },
+    backgroundColor: '#00843D',
+  },  
   textContainer: {
     marginLeft: 12,
     flex: 1,
   },
-  optionTitle: {
+  optionTitle: {  
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
@@ -193,7 +225,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    backgroundColor: '#2D68FF',
+    backgroundColor: '#00843D',
     borderRadius: 24,
     height: 48,
     alignItems: 'center',
