@@ -39,7 +39,9 @@
     "react-native-sensors": "^7.3.6",
     "react-native-svg": "^15.11.2",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-video": "^6.13.0",
     "react-native-vision-camera": "^4.6.4",
+    "react-native-webview": "^13.13.5",
     "react-vision-camera": "^1.0.1",
     "rxjs": "^7.8.2"
   },

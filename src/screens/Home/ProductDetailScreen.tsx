@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useCart } from '../../contexts/CartContext';
 
 // Define types
 interface Product {
@@ -10,12 +11,14 @@ interface Product {
   price: number;
   image: string;
   description: string;
-  ingredients: string[];
+  colors: string[];
+  sizes: string[];
 }
 
 type RootStackParamList = {
   ProductDetail: { product: Product };
   MainTabs: undefined;
+  Cart: undefined;
 };
 
 type ProductDetailRouteProp = RouteProp<RootStackParamList, 'ProductDetail'>;
@@ -25,20 +28,48 @@ const ProductDetailScreen = () => {
   const route = useRoute<ProductDetailRouteProp>();
   const navigation = useNavigation<NavigationProps>();
   const { product } = route.params;
+  const { addToCart, items, updateQuantity, removeFromCart } = useCart();
 
-  const renderIngredientIcon = (ingredient: string, index: number) => {
-    // In a real app, you would have different icons for each ingredient
+  // Check if product is already in cart
+  const cartItem = useMemo(() => {
+    return items.find(item => item.id === product.id);
+  }, [items, product.id]);
+
+  const renderColorVariation = (color: string, index: number) => {
     return (
-      <View key={index} style={styles.ingredientItem}>
-        <View style={styles.ingredientIconContainer}>
-          <Image 
-            source={{ uri: 'https://via.placeholder.com/50' }} 
-            style={styles.ingredientIcon} 
-          />
-        </View>
-        <Text style={styles.ingredientText}>{ingredient}</Text>
+      <View key={index} style={styles.variationItem}>
+        <View style={[styles.colorSwatch, { backgroundColor: color }]} />
+        <Text style={styles.variationText}>{color}</Text>
       </View>
     );
+  };
+
+  const renderSizeVariation = (size: string, index: number) => {
+    return (
+      <View key={index} style={styles.variationItem}>
+        <View style={styles.sizeBox}>
+          <Text style={styles.sizeText}>{size}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  const handleAddToCart = () => {
+    addToCart(product);
+  };
+
+  const handleIncreaseQuantity = () => {
+    if (cartItem) {
+      updateQuantity(product.id, cartItem.quantity + 1);
+    }
+  };
+
+  const handleDecreaseQuantity = () => {
+    if (cartItem && cartItem.quantity > 1) {
+      updateQuantity(product.id, cartItem.quantity - 1);
+    } else if (cartItem) {
+      removeFromCart(product.id);
+    }
   };
 
   return (
@@ -51,7 +82,7 @@ const ProductDetailScreen = () => {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Product Details</Text>
-        <TouchableOpacity style={styles.cartButton}>
+        <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
           <Image 
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/263/263142.png' }}
             style={styles.cartIcon}
@@ -64,21 +95,29 @@ const ProductDetailScreen = () => {
           <Image 
             source={{ uri: product.image }} 
             style={styles.productImage}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
         
         <View style={styles.contentContainer}>
           <View style={styles.productInfo}>
-            <Text style={styles.productCategory}>SHAMPOO</Text>
             <Text style={styles.productTitle}>{product.title}</Text>
           </View>
           
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ingredients</Text>
-            <View style={styles.ingredientsContainer}>
-              {product.ingredients.map((ingredient, index) => 
-                renderIngredientIcon(ingredient, index)
+            <Text style={styles.sectionTitle}>Colors</Text>
+            <View style={styles.variationsContainer}>
+              {product.colors && product.colors.map((color, index) => 
+                renderColorVariation(color, index)
+              )}
+            </View>
+          </View>
+          
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Sizes</Text>
+            <View style={styles.variationsContainer}>
+              {product.sizes && product.sizes.map((size, index) => 
+                renderSizeVariation(size, index)
               )}
             </View>
           </View>
@@ -93,9 +132,35 @@ const ProductDetailScreen = () => {
             <Text style={styles.priceValue}>{product.price.toFixed(2)}</Text>
           </View>
           
-          <TouchableOpacity style={styles.addButton}>
-            <Text style={styles.addButtonText}>Add to Cart</Text>
-          </TouchableOpacity>
+          {cartItem ? (
+            <>
+              <View style={styles.quantityContainer}>
+                <TouchableOpacity 
+                  style={styles.quantityButton}
+                  onPress={handleDecreaseQuantity}
+                >
+                  <Text style={styles.quantityButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>{cartItem.quantity}</Text>
+                <TouchableOpacity 
+                  style={styles.quantityButton}
+                  onPress={handleIncreaseQuantity}
+                >
+                  <Text style={styles.quantityButtonText}>+</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity 
+                style={styles.viewCartButton} 
+                onPress={() => navigation.navigate('Cart')}
+              >
+                <Text style={styles.viewCartButtonText}>View Cart</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity style={styles.addButton} onPress={handleAddToCart}>
+              <Text style={styles.addButtonText}>Add to Cart</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -140,12 +205,11 @@ const styles = StyleSheet.create({
   imageHeader: {
     height: 300,
     backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
   },
   productImage: {
-    width: 200,
-    height: 250,
+    width: '100%',
+    height: '100%',
   },
   contentContainer: {
     padding: 16,
@@ -172,34 +236,42 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#333',
   },
-  ingredientsContainer: {
+  variationsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  ingredientItem: {
+  variationItem: {
     alignItems: 'center',
-    width: 80,
+    width: 60,
     marginRight: 12,
     marginBottom: 12,
   },
-  ingredientIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  colorSwatch: {
+    width: 30,
+    height: 30,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 8,
+  },
+  variationText: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#666',
+  },
+  sizeBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
     backgroundColor: '#f2f2f2',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    overflow: 'hidden',
   },
-  ingredientIcon: {
-    width: 40,
-    height: 40,
-  },
-  ingredientText: {
-    fontSize: 12,
-    textAlign: 'center',
-    color: '#666',
+  sizeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
   descriptionText: {
     fontSize: 14,
@@ -223,7 +295,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   addButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#00843D',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -231,6 +303,47 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    // paddingVertical: 14,
+    marginBottom: 20,
+    backgroundColor: '#00843D',
+    borderRadius: 10,
+  },
+  quantityButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 15,
+  },
+  quantityButtonText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  quantityText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  viewCartButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  viewCartButtonText: {
+    color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
   },

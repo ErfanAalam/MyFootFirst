@@ -18,6 +18,11 @@ import { useUser } from '../../contexts/UserContext';
 type RootStackParamList = {
   InsoleQuestions: undefined;
   InsoleRecommendation: { recommendedInsole: 'Sport' | 'Comfort' | 'Stability' };
+  ShoesSize: { 
+    answers: any, 
+    gender: string, 
+    recommendedInsole: 'Sport' | 'Comfort' | 'Stability' 
+  };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'InsoleQuestions'>;
@@ -48,9 +53,32 @@ const options = {
   medicalConditions: ['None', 'Plantar Fasciitis', 'Bunions', 'Others'],
 };
 
+// Function to calculate age group from DOB
+const calculateAgeGroup = (dob: string): string => {
+  if (!dob) return '';
+  
+  // Parse DD/MM/YYYY format
+  const [day, month, year] = dob.split('/').map(num => parseInt(num, 10));
+  const birthDate = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+  
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  
+  // Check if birthday hasn't occurred yet this year
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  if (age >= 18 && age <= 40) return '18-40';
+  if (age >= 41 && age <= 60) return '41-60';
+  if (age > 60) return '60+';
+  return '';
+};
+
 const InsoleQuestions = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { userData, saveInsoleAnswers } = useUser();
+  const { userData } = useUser();
   const [answers, setAnswers] = useState<AnswerType>({
     ageGroup: '',
     activityLevel: '',
@@ -61,17 +89,24 @@ const InsoleQuestions = () => {
     medicalCondition: '',
   });
 
-  // Load previous answers if they exist
-  // useEffect(() => {
-  //   if (userData?.insoleAnswers) {
-  //     setAnswers(prev => ({
-  //       ...prev,
-  //       ...userData.insoleAnswers,
-  //     }));
-  //   }
-  // }, [userData]);
-
   const [modalField, setModalField] = useState<keyof AnswerType | null>(null);
+
+  // Auto-fill age group and activity level from userData
+  useEffect(() => {
+    if (userData) {
+      // Set age group based on DOB
+      const userDataWithDob = userData as any;
+      if (userDataWithDob.dob) {
+        const calculatedAgeGroup = calculateAgeGroup(userDataWithDob.dob);
+        setAnswers(prev => ({ ...prev, ageGroup: calculatedAgeGroup }));
+      }
+      
+      // Set activity level if available in userData
+      if (userDataWithDob.activityLevel) {
+        setAnswers(prev => ({ ...prev, activityLevel: userDataWithDob.activityLevel }));
+      }
+    }
+  }, [userData]);
 
   const updateAnswer = (field: keyof AnswerType, value: string) => {
     setAnswers(prev => ({ ...prev, [field]: value }));
@@ -84,9 +119,7 @@ const InsoleQuestions = () => {
       return;
     }
 
-    // Save answers to Firestore via UserContext, excluding ageGroup and activityLevel
     try {
-
       const scores: ScoreType = { Sport: 0, Comfort: 0, Stability: 0 };
 
       if (answers.ageGroup === '18-40') scores.Sport += 25;
@@ -118,21 +151,25 @@ const InsoleQuestions = () => {
         scores[a as keyof ScoreType] > scores[b as keyof ScoreType] ? a : b
       ) as keyof ScoreType;
   
-
       const answersToSave = {
+        // ageGroup: answers.ageGroup,
+        // activityLevel: answers.activityLevel,
         painLocation: answers.painLocation,
         painFrequency: answers.painFrequency,
         footPosture: answers.footPosture,
         archType: answers.archType,
         medicalCondition: answers.medicalCondition,
       };
+      console.log('Answers to save:', answersToSave);
       
-      navigation.navigate('InsoleRecommendation', { recommendedInsole: recommended });
-      const result = await saveInsoleAnswers(answersToSave);
-      console.log('Result:', result);
+
+      navigation.navigate('ShoesSize', { 
+        answers: answersToSave,
+        gender: userData?.gender || '',
+        recommendedInsole: recommended
+      });
     } catch (error) {
       console.error('Error saving answers to Firestore:', error);
-      Alert.alert('Failed to save your answers. Please try again.');
     }
   };
 
@@ -140,8 +177,12 @@ const InsoleQuestions = () => {
     <View style={styles.inputGroup}>
       <Text style={styles.label}>{label}</Text>
       <TouchableOpacity
-        onPress={() => setModalField(field)}
+        onPress={() => {
+          console.log('Opening modal for:', field);
+          setModalField(field);
+        }}
         style={styles.selectBox}
+        activeOpacity={0.6}
       >
         <Text style={answers[field] ? styles.selectedText : styles.selectText}>
           {answers[field] || 'Select an option'}
@@ -153,33 +194,50 @@ const InsoleQuestions = () => {
           style={styles.selectIcon}
         />
       </TouchableOpacity>
-      {modalField === field && (
-        <Modal transparent={true} animationType="slide">
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select {label}</Text>
-              <FlatList
-                data={items}
-                keyExtractor={item => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.modalItem,
-                      answers[field] === item && styles.selectedModalItem
-                    ]}
-                    onPress={() => updateAnswer(field, item)}
-                  >
-                    <Text style={answers[field] === item ? styles.selectedItemText : styles.modalItemText}>
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-              <Button onPress={() => setModalField(null)}>Cancel</Button>
-            </View>
+      <Modal 
+        transparent={true} 
+        animationType="slide" 
+        visible={modalField === field}
+        onRequestClose={() => setModalField(null)}
+      >
+        <TouchableOpacity 
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPress={() => setModalField(null)}
+        >
+          <View style={styles.modalContent} onStartShouldSetResponder={() => true} onTouchEnd={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Select {label}</Text>
+            <FlatList
+              data={items}
+              keyExtractor={item => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    answers[field] === item && styles.selectedModalItem
+                  ]}
+                  onPress={() => {
+                    console.log('Selected:', item);
+                    updateAnswer(field, item);
+                  }}
+                  activeOpacity={0.6}
+                >
+                  <Text style={answers[field] === item ? styles.selectedItemText : styles.modalItemText}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+            <Button 
+              onPress={() => setModalField(null)}
+              mode="contained"
+              style={{marginTop: 10, backgroundColor: '#00843D'}}
+            >
+              Cancel
+            </Button>
           </View>
-        </Modal>
-      )}
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
   
@@ -231,7 +289,7 @@ const InsoleQuestions = () => {
         {renderPicker('Medical Conditions', 'medicalCondition', options.medicalConditions)}
 
         <TouchableOpacity style={styles.buttonContainer} onPress={calculateRecommendation}>
-          <Text style={styles.buttonText}>Get Recommendation</Text>
+          <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

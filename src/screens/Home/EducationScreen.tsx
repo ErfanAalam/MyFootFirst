@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView, Dimensions, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { WebView } from 'react-native-webview';
 
 // Define types for blog and video items
 interface BlogItem {
@@ -32,10 +33,9 @@ const blogData: BlogItem[] = [
     image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=2070&auto=format&fit=crop",
     description: "Menopause is a natural phase of life, but it can bring unexpected changes—including in your feet. As estrogen levels drop, the body experiences shifts in bone density, ligament elasticity, and fat distribution, all of which can impact how your feet feel and function. Many women notice foot pain, increased swelling, or a change in foot shape during and after menopause. Arches may flatten, and fat pads that once cushioned your feet may thin out, leading to soreness—especially in the heel and ball of the foot. You may also be more prone to conditions like plantar fasciitis or bunions during this time. Thankfully, there are ways to support your foot health. Wearing supportive, well-cushioned shoes is key. Orthotics or insoles can also help redistribute pressure and relieve pain. Stretching and low-impact exercises like swimming or walking can keep your feet strong and flexible. If foot discomfort becomes a regular issue, it's a good idea to consult a podiatrist. They can assess your foot structure and recommend solutions tailored to your needs. Menopause affects everyone differently, but you don't have to suffer through foot pain—small changes can make a big difference!"
   },
-
 ];
 
-// Sample data for videos
+// Define video data with YouTube URLs for embedding
 const videoData: VideoItem[] = [
   {
     id: '1',
@@ -43,18 +43,45 @@ const videoData: VideoItem[] = [
     subtitle: "Guided Sleep Meditation",
     duration: "15 min",
     image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=2070&auto=format&fit=crop",
-    videoUrl: "https://example.com/sleep-meditation-video"
+    videoUrl: "rRFu0IKNMks?si=FqTDYg6A4oQKPNhS"
   },
   {
     id: '2',
     title: "Morning Energy",
     subtitle: "Start Your Day Right",
     duration: "7 min",
-    image: "https://images.unsplash.com/photo-1611800065908-239fcd0e1cf5?q=80&w=2070&auto=format&fit=crop",
-    videoUrl: "https://example.com/morning-meditation-video"
+    image: "https://miro.medium.com/v2/resize:fit:1400/0*92EtfQXxrWp8Pk_a",
+    videoUrl: "Y2VF8tmLFHw"
   },
 ];
 
+// Helper function to get YouTube embed HTML
+const getYouTubeEmbedHTML = (videoId: string) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
+          .video-container { position: relative; padding-top: 56.25%; /* 16:9 Aspect Ratio */ }
+          iframe { position: absolute; top: 0; left: 0; bottom: 0; right: 0; width: 100%; height: 100%; }
+        </style>
+      </head>
+      <body>
+        <div class="video-container">
+          <iframe 
+            width="100%" 
+            height="100%" 
+            src="https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&controls=1" 
+            frameborder="0" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      </body>
+    </html>
+  `;
+};
 
 const EducationScreen = () => {
   const [activeTab, setActiveTab] = useState('blog');
@@ -112,8 +139,6 @@ const EducationScreen = () => {
           <Image source={{ uri: selectedBlog.image }} style={styles.detailImage} />
           <View style={styles.detailContent}>
             <Text style={styles.detailTitle}>{selectedBlog.title}</Text>
-            <Text style={styles.detailSubtitle}>{selectedBlog.subtitle}</Text>
-            <Text style={styles.detailDuration}>{selectedBlog.duration}</Text>
             <Text style={styles.detailDescription}>{selectedBlog.description}</Text>
           </View>
         </ScrollView>
@@ -128,16 +153,23 @@ const EducationScreen = () => {
       <View style={styles.detailContainer}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => setPlayingVideo(null)}
+          onPress={() => {
+            setPlayingVideo(null);
+          }}
         >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <View>
-          <View style={styles.videoPlayer}>
-            <Image source={{ uri: playingVideo.image }} style={styles.videoPlayerImage} />
-            <View style={styles.playButtonLarge}>
-              <Text style={styles.playButtonTextLarge}>▶</Text>
-            </View>
+        <View style={styles.videoDetailContainer}>
+          <View style={styles.videoPlayerContainer}>
+            <WebView
+              source={{ html: getYouTubeEmbedHTML(playingVideo.videoUrl) }}
+              style={styles.videoPlayerContent}
+              mediaPlaybackRequiresUserAction={false}
+              allowsFullscreenVideo={true}
+              allowsInlineMediaPlayback={true}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+            />
           </View>
           <View style={styles.detailContent}>
             <Text style={styles.detailTitle}>{playingVideo.title}</Text>
@@ -173,7 +205,7 @@ const EducationScreen = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#00843D" barStyle="light-content" />
       <View style={styles.container}>
-        {/* New Header Component */}
+        {/* Header Component */}
         <View style={styles.header}>
           <Text style={styles.headerText}>Education</Text>
         </View>
@@ -331,6 +363,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
+  videoDetailContainer: {
+    flex: 1,
+  },
   backButton: {
     padding: 15,
   },
@@ -364,32 +399,15 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginTop: 15,
   },
-  videoPlayer: {
+  videoPlayerContainer: {
     width: '100%',
     height: 220,
-    position: 'relative',
+    backgroundColor: '#000',
   },
-  videoPlayerImage: {
+  videoPlayerContent: {
     width: '100%',
     height: '100%',
   },
-  playButtonLarge: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -25 }, { translateY: -25 }],
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playButtonTextLarge: {
-    color: '#333',
-    fontSize: 24,
-  },
 });
-
 
 export default EducationScreen;

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import RootNavigator from './src/navigation/RootNavigator.tsx'
 import { UserProvider } from './src/contexts/UserContext';
+import { CartProvider } from './src/contexts/CartContext';
 
 const App = () => {
 
@@ -22,7 +23,9 @@ const App = () => {
     <GestureHandlerRootView style={{ flex: 1 }}> 
       <PaperProvider>
         <UserProvider>
-          <RootNavigator />
+          <CartProvider>
+            <RootNavigator />
+          </CartProvider>
         </UserProvider>
       </PaperProvider>
     </GestureHandlerRootView>

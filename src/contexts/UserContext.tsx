@@ -28,7 +28,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // Listen for auth state changes
-    const unsubscribe = auth().onAuthStateChanged(async (authUser) => {
+    const unsubscribe = auth().onAuthStateChanged(async (authUser: FirebaseAuthTypes.User | null) => {
+      console.log(authUser)
       setUser(authUser);
       
       if (authUser) {
@@ -61,7 +62,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           ...data
         });
       } else {
-        console.log("User document does not exist.");
+        // Create a new user document for first-time users
+        const currentUser = auth().currentUser;
+        const defaultUserData: UserData = {
+          id: userId,
+          firstName: '',
+          surname: '',
+          email: currentUser?.email || '',
+          gender: '',
+          insoleAnswers: {}
+        };
+        
+        await setDoc(userDocRef, defaultUserData);
+        setUserData(defaultUserData);
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -84,7 +97,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const saveInsoleAnswers = async (answers: Record<string, any>) => {
+  const saveInsoleAnswers = async (answers: Record<string, any>): Promise<void> => {
     if (!user) return;
     
     try {
@@ -100,7 +113,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUserData(prev => 
         prev ? { ...prev, insoleAnswers: answers } : null
       );
-      return userData;
     } catch (error) {
       console.error("Error saving insole answers:", error);
       throw error;

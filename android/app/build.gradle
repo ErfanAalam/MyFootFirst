@@ -117,6 +117,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
     implementation project(':react-native-vector-icons')
+    implementation project(':react-native-webview')
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

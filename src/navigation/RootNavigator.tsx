@@ -12,7 +12,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import InsoleQuestions from '../screens/Home/InsoleQuestions';
 import InsoleRecommendation from '../screens/Home/InsoleRecommendation';
 import ProductDetailScreen from '../screens/Home/ProductDetailScreen';
-
+import CartScreen from '../screens/Home/CartScreen';
+import ShoesSize from '../screens/Home/ShoesSize';
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
@@ -61,6 +62,8 @@ const RootNavigator = () => {
             <Stack.Screen name="InsoleQuestions" component={InsoleQuestions}/>
             <Stack.Screen name="InsoleRecommendation" component={InsoleRecommendation}/>
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen}/>
+            <Stack.Screen name="Cart" component={CartScreen}/>
+            <Stack.Screen name="ShoesSize" component={ShoesSize}/>
           </Stack.Navigator>
         ) : (
           <AuthStack />

@@ -10,12 +10,14 @@ interface Product {
   price: number;
   image: string;
   description: string;
-  ingredients: string[];
+  colors: string[];
+  sizes?: string[];
 }
 
 type RootStackParamList = {
   ProductDetail: { product: Product };
   MainTabs: undefined;
+  Cart: undefined;
 };
 
 type NavigationProps = NativeStackNavigationProp<RootStackParamList>;
@@ -24,51 +26,57 @@ type NavigationProps = NativeStackNavigationProp<RootStackParamList>;
 const products: Product[] = [
   {
     id: '1',
-    title: 'Hair Strength',
+    title: 'Leather Sleepers',
     price: 21.40,
     image: 'https://sreeleathersonline.com/cdn/shop/products/1B6A8386-PhotoRoom.png?v=1668503614',
     description: 'A nourishing shampoo formula designed to strengthen your hair from the roots.',
-    ingredients: ['Apricot', 'Apple', 'Coconut']
+    colors: ['black', 'white', 'brown'],
+    sizes: ['6', '7', '8', '9', '10']
   },
   {
     id: '2',
-    title: 'Hair Growth',
+    title: 'Walking Pro Insoles',
     price: 24.99,
-    image: 'https://sreeleathersonline.com/cdn/shop/products/1B6A8386-PhotoRoom.png?v=1668503614',
-    description: 'Promotes hair growth and prevents hair fall with natural ingredients.',
-    ingredients: ['Aloe Vera', 'Ginger', 'Mint']
+    image: 'https://dropinblog.net/34250199/files/walking-pro-insoles-3-43201.jpg',
+    description: 'Promotes hair growth and prevents hair fall with natural Images.',
+    colors: ['black', 'white', 'brown'],
+    sizes: ['6', '7', '8', '9', '10']
   },
   {
     id: '3',
-    title: 'Moisturizing Conditioner',
+    title: 'Sneakers',
     price: 19.95,
-    image: 'https://sreeleathersonline.com/cdn/shop/products/1B6A8386-PhotoRoom.png?v=1668503614',
+    image: 'https://www.shutterstock.com/image-photo/white-sneaker-sport-shoe-on-260nw-2155395817.jpg',
     description: 'Deep moisturizing conditioner for dry and damaged hair.',
-    ingredients: ['Argan Oil', 'Shea Butter', 'Almond']
+    colors: ['black', 'white', 'brown'],
+    sizes: ['7', '8', '9', '10']
   },
   {
     id: '4',
-    title: 'Anti-Dandruff Shampoo',
+    title: 'Renesmee Orthotic Arch Support',
     price: 18.50,
-    image: 'https://sreeleathersonline.com/cdn/shop/products/1B6A8386-PhotoRoom.png?v=1668503614',
+    image: 'https://images.meesho.com/images/products/361185343/4srll_512.webp',
     description: 'Effectively controls dandruff and soothes the scalp.',
-    ingredients: ['Tea Tree Oil', 'Lemon', 'Rosemary']
+    colors: ['black', 'white', 'brown'],
+    sizes: ['8', '9', '10', '11', '12']
   },
   {
     id: '5',
-    title: 'Hair Repair Mask',
+    title: 'Fuel Sneakers',
     price: 26.75,
-    image: 'https://sreeleathersonline.com/cdn/shop/products/1B6A8386-PhotoRoom.png?v=1668503614',
+    image: 'https://fuelshoes.com/cdn/shop/files/8_1e1df76b-b544-44fc-8c2f-e31dba4b1eb3.jpg?v=1720001401&width=3000',
     description: 'Intensive repair treatment for severely damaged hair.',
-    ingredients: ['Protein Complex', 'Avocado', 'Jojoba Oil']
+    colors: ['black', 'white', 'brown'],
+    sizes: ['8', '9', '10', '11', '12']
   },
   {
     id: '6',
-    title: 'Color Protection',
+    title: 'Campus Sneakers',
     price: 22.95,
-    image: 'https://sreeleathersonline.com/cdn/shop/products/1B6A8386-PhotoRoom.png?v=1668503614',
+    image: 'https://www.campusshoes.com/cdn/shop/files/FIRST_11G-787_WHT-SIL-B.ORG.webp?v=1745400096',
     description: 'Protects color-treated hair and prevents fading.',
-    ingredients: ['UV Protection', 'Cranberry', 'Pomegranate']
+    colors: ['black', 'white', 'brown'],
+    sizes: ['7', '8', '9', '10', '11']
   },
 ];
 
@@ -80,11 +88,13 @@ interface ProductCardProps {
 const ProductCard = ({ item, onPress }: ProductCardProps) => {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
-      <Image 
-        source={{ uri: item.image }} 
-        style={styles.productImage}
-        resizeMode="contain"
-      />
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: item.image }}
+          style={styles.productImage}
+          resizeMode="cover"
+        />
+      </View>
       <Text style={styles.productTitle}>{item.title}</Text>
       <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
     </TouchableOpacity>
@@ -102,8 +112,8 @@ const EcommerceScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>MyShop</Text>
-        <TouchableOpacity style={styles.cartButton}>
-          <Image 
+        <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
+          <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/263/263142.png' }}
             style={styles.cartIcon}
           />
@@ -166,7 +176,7 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 8,
     padding: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     elevation: 2,
     shadowColor: '#000',
@@ -174,9 +184,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  productImage: {
-    height: 140,
+  imageContainer: {
+    height: 160,
     width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  productImage: {
+    height: "100%",
+    width: '100%',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -188,7 +209,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#007AFF',
+    color: '#00843D',
   },
 });
 

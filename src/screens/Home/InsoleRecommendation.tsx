@@ -4,12 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, IconButton } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useCart } from '../../contexts/CartContext';
 
 type InsoleType = 'Sport' | 'Comfort' | 'Stability';
 
 type RootStackParamList = {
   InsoleQuestions: undefined;
   InsoleRecommendation: { recommendedInsole: InsoleType };
+  Cart: undefined;
 };
 
 type InsoleRecommendationRouteProp = RouteProp<RootStackParamList, 'InsoleRecommendation'>;
@@ -19,6 +21,7 @@ const insoleData = {
   Sport: {
     name: 'SPORT Insole',
     image: require('../../assets/images/banner1.jpg'), // Add appropriate image path
+    price: 49.99,
     features: [
       'Lightweight and flexible for active movement',
       'Ideal for high arches and athletic use',
@@ -30,6 +33,7 @@ const insoleData = {
   Comfort: {
     name: 'COMFORT Insole',
     image: require('../../assets/images/banner2.webp'), // Add appropriate image path
+    price: 39.99,
     features: [
       'All-day cushioning for casual and work shoes',
       'Great for normal arches and moderate activity',
@@ -41,6 +45,7 @@ const insoleData = {
   Stability: {
     name: 'STABILITY Insole',
     image: require('../../assets/images/banner3.jpeg'), // Add appropriate image path
+    price: 44.99,
     features: [
       'Firm support for flat feet and overpronation',
       'Designed to ease chronic heel, knee, or back pain',
@@ -56,7 +61,8 @@ const InsoleRecommendation = () => {
   const route = useRoute<InsoleRecommendationRouteProp>();
   const { width } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
-  
+  const { addToCart } = useCart();
+
   // Get the recommended insole type from navigation params
   const recommendedInsole = route.params.recommendedInsole;
   
@@ -85,6 +91,24 @@ const InsoleRecommendation = () => {
       });
     }, 100);
   }, []);
+
+  // Function to handle adding insole to cart
+  const handleAddToCart = (insoleType: InsoleType) => {
+    const insole = insoleData[insoleType];
+    
+    // Format the insole data as expected by the cart context
+    const product = {
+      id: `insole-${insoleType.toLowerCase()}`,
+      title: insole.name,
+      price: insole.price,
+      image: Image.resolveAssetSource(insole.image).uri,
+      description: insole.features.join(' | '),
+    };
+    
+    // Add to cart and navigate
+    addToCart(product);
+    navigation.navigate('Cart');
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -143,13 +167,12 @@ const InsoleRecommendation = () => {
                     </View>
                   ))}
                 </View>
-                <Button 
-                  mode={isRecommended ? "contained" : "outlined"}
+                <TouchableOpacity 
                   style={styles.buyButton}
-                  labelStyle={isRecommended ? styles.recommendedButtonLabel : styles.buttonLabel}
+                  onPress={() => handleAddToCart(type)}
                 >
-                  Add to Cart
-                </Button>
+                  <Text style={styles.buttonText}>Add to Cart</Text>    
+                </TouchableOpacity>
               </View>
             );
           })}
@@ -283,9 +306,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   buyButton: {
+    backgroundColor: '#00843D',
     marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
   },
   buttonLabel: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  buttonText: {
+    color: '#fff',
     fontSize: 14,
   },
   recommendedButtonLabel: {
