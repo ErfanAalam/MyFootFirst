@@ -61,20 +61,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           insoleAnswers: data.insoleAnswers || {},
           ...data
         });
-      } else {
-        // Create a new user document for first-time users
-        const currentUser = auth().currentUser;
-        const defaultUserData: UserData = {
-          id: userId,
-          firstName: '',
-          surname: '',
-          email: currentUser?.email || '',
-          gender: '',
-          insoleAnswers: {}
-        };
-        
-        await setDoc(userDocRef, defaultUserData);
-        setUserData(defaultUserData);
       }
     } catch (error) {
       console.error("Error fetching user data:", error);

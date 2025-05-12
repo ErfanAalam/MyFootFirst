@@ -50,10 +50,10 @@ const AppTabs = () => (
 
           return (
             <View style={styles.iconContainer}>
-              <Icon 
-                name={iconName} 
-                size={size} 
-                color={iconColor} 
+              <Icon
+                name={iconName}
+                size={size}
+                color={iconColor}
               />
               {/* {focused && <View style={styles.activeIndicator} />} */}
             </View>
@@ -61,7 +61,7 @@ const AppTabs = () => (
         },
         tabBarLabel: ({ focused, color }) => {
           let label = '';
-          
+
           if (route.name === 'Home') {
             label = 'Home';
           } else if (route.name === 'Profile') {
@@ -71,11 +71,11 @@ const AppTabs = () => (
           } else if (route.name === 'Ecommerce') {
             label = 'Shop';
           }
-          
+
           return (
-            <Text 
+            <Text
               style={[
-                styles.tabLabel, 
+                styles.tabLabel,
                 { color: focused ? "black" : "white" }
               ]}
             >
@@ -91,7 +91,7 @@ const AppTabs = () => (
       <Tab.Screen name="Education" component={EducationScreen} />
       <Tab.Screen name="Ecommerce" component={EcommerceScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      
+
     </Tab.Navigator>
   </SafeAreaProvider>
 );

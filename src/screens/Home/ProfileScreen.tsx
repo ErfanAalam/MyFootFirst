@@ -15,7 +15,7 @@ type RootStackParamList = {
   Home: undefined;
   Cart: undefined;
   OrderHistory: undefined;
-  Messages: undefined;
+  Messaging: undefined;
   ReferralCode: undefined;
 };
 
@@ -42,36 +42,32 @@ const ProfileScreen = () => {
           </View>
 
           <View style={styles.menuContainer}>
-            <TouchableOpacity 
-              style={styles.menuItem} 
+            <TouchableOpacity
+              style={styles.menuItem}
               onPress={() => handleNavigation('ReferralCode')}
             >
               <Text style={styles.menuItemText}>Referral Code</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.menuItem} 
+            <TouchableOpacity
+              style={styles.menuItem}
               onPress={() => handleNavigation('Cart')}
             >
               <Text style={styles.menuItemText}>Cart</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.menuItem} 
+            <TouchableOpacity
+              style={styles.menuItem}
               onPress={() => handleNavigation('OrderHistory')}
             >
               <Text style={styles.menuItemText}>Order History</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.menuItem} 
-              onPress={() => handleNavigation('Messages')}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigation('Messaging')}
             >
               <Text style={styles.menuItemText}>Messages</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.menuItem, styles.logoutItem]} 
+            <TouchableOpacity
+              style={[styles.menuItem, styles.logoutItem]}
               onPress={onLogout}
             >
               <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>

@@ -74,8 +74,9 @@ const Goals = ({ route }: { route: GoalsRouteProp }) => {
                dob,
                activityLevel: selectedLevel,
                gender,
+               createdAt: new Date(),
              });
-        navigation.navigate('Home');
+        // navigation.navigate('Home');
           } catch (error: any) {
             console.error('Error signing up:', error);
              Alert.alert("Signup Error", error.message);

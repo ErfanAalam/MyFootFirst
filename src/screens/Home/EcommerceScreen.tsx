@@ -111,6 +111,15 @@ const EcommerceScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+      <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Image 
+            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/130/130882.png' }}
+            style={styles.backIcon}
+          />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>MyShop</Text>
         <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
           <Image
@@ -171,6 +180,13 @@ const styles = StyleSheet.create({
   productList: {
     paddingHorizontal: 8,
     paddingBottom: 20,
+  },
+  backButton: {
+    padding: 6,
+  },
+  backIcon: {
+    width: 20,
+    height: 20,
   },
   card: {
     flex: 1,

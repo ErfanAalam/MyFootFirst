@@ -107,7 +107,7 @@ const CartScreen = () => {
           <Text style={styles.emptyCartText}>Your cart is empty</Text>
           <TouchableOpacity 
             style={styles.shopNowButton} 
-            onPress={() => navigation.navigate('Home' as never)}
+            onPress={() => navigation.navigate('EcommerceScreen' as never)}
           >
             <Text style={styles.shopNowButtonText}>Shop Now</Text>
           </TouchableOpacity>

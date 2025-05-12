@@ -2,7 +2,7 @@
 import React from 'react';
 import { useEffect, useState } from 'react'
 import { NavigationContainer } from '@react-navigation/native';
-import { SafeAreaView, StatusBar, Platform } from 'react-native';
+import { SafeAreaView, StatusBar } from 'react-native';
 import AuthStack from './AuthStack';
 import AppTabs from './AppTabs';
 import FootScanScreen from '../screens/Home/FootScanScreen';
@@ -14,6 +14,8 @@ import InsoleRecommendation from '../screens/Home/InsoleRecommendation';
 import ProductDetailScreen from '../screens/Home/ProductDetailScreen';
 import CartScreen from '../screens/Home/CartScreen';
 import ShoesSize from '../screens/Home/ShoesSize';
+import EcommerceScreen from '../screens/Home/EcommerceScreen';
+import Messaging from '../screens/Home/Messaging';
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
@@ -64,6 +66,8 @@ const RootNavigator = () => {
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen}/>
             <Stack.Screen name="Cart" component={CartScreen}/>
             <Stack.Screen name="ShoesSize" component={ShoesSize}/>
+            <Stack.Screen name="Ecommerce" component={EcommerceScreen}/>
+            <Stack.Screen name="Messaging" component={Messaging}/>
           </Stack.Navigator>
         ) : (
           <AuthStack />
