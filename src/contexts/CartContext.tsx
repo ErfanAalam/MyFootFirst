@@ -5,7 +5,7 @@ export interface CartItem {
   id: string;
   title: string;
   price: number;
-  image: string;
+  selectedImage: string;
   quantity: number;
 }
 
@@ -55,7 +55,8 @@ export const CartProvider: React.FC<{children: ReactNode}> = ({ children }) => {
           id: product.id,
           title: product.title,
           price: product.price,
-          image: product.image,
+          image: product.selectedImage,
+          size: product.selectedSize,
           quantity: quantity
         }];
       }

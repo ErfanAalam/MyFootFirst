@@ -8,7 +8,7 @@ import SignupScreen from '../screens/Auth/SignupScreen';
 import SignupDetails from '../screens/Auth/SignupDetails';
 import Goals from '../screens/Auth/Goals';
 import { AuthStackParamList } from '../types/navigation';
-
+import ForgotPasswordScreen from '../screens/Auth/ForgotPasswordScreen';
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 const AuthStack = () => (
@@ -30,6 +30,7 @@ const AuthStack = () => (
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="SignupDetails" component={SignupDetails} />
       <Stack.Screen name="Goals" component={Goals} />
+      <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   </SafeAreaView>
 );

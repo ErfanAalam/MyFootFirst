@@ -43,7 +43,7 @@ const LoginScreen = () => {
     getAuth().signInWithEmailAndPassword(email, password)
       .then(userCredential => {
         console.log('Logged in!', userCredential.user.email);
-        navigation.navigate('MainTabs');
+        // navigation.navigate('MainTabs');
       })
       .catch(error => {
         console.error('Login error:', error.message);
@@ -78,7 +78,7 @@ const LoginScreen = () => {
           <Text style={styles.loginButtonText}>Log In</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.forgotPasswordContainer}>
+        <TouchableOpacity style={styles.forgotPasswordContainer} onPress={() => navigation.navigate('ForgotPasswordScreen')}>
           <Text style={styles.forgotPasswordText}>Forgot password?</Text>
         </TouchableOpacity>
 

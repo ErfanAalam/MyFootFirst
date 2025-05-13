@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import firestore from '@react-native-firebase/firestore';
+import { useUser } from '../../contexts/UserContext';
 
 // Define types
 interface Product {
@@ -22,100 +24,135 @@ type RootStackParamList = {
 
 type NavigationProps = NativeStackNavigationProp<RootStackParamList>;
 
-// Dummy product data
-const products: Product[] = [
-  {
-    id: '1',
-    title: 'Leather Sleepers',
-    price: 21.40,
-    image: 'https://sreeleathersonline.com/cdn/shop/products/1B6A8386-PhotoRoom.png?v=1668503614',
-    description: 'A nourishing shampoo formula designed to strengthen your hair from the roots.',
-    colors: ['black', 'white', 'brown'],
-    sizes: ['6', '7', '8', '9', '10']
-  },
-  {
-    id: '2',
-    title: 'Walking Pro Insoles',
-    price: 24.99,
-    image: 'https://dropinblog.net/34250199/files/walking-pro-insoles-3-43201.jpg',
-    description: 'Promotes hair growth and prevents hair fall with natural Images.',
-    colors: ['black', 'white', 'brown'],
-    sizes: ['6', '7', '8', '9', '10']
-  },
-  {
-    id: '3',
-    title: 'Sneakers',
-    price: 19.95,
-    image: 'https://www.shutterstock.com/image-photo/white-sneaker-sport-shoe-on-260nw-2155395817.jpg',
-    description: 'Deep moisturizing conditioner for dry and damaged hair.',
-    colors: ['black', 'white', 'brown'],
-    sizes: ['7', '8', '9', '10']
-  },
-  {
-    id: '4',
-    title: 'Renesmee Orthotic Arch Support',
-    price: 18.50,
-    image: 'https://images.meesho.com/images/products/361185343/4srll_512.webp',
-    description: 'Effectively controls dandruff and soothes the scalp.',
-    colors: ['black', 'white', 'brown'],
-    sizes: ['8', '9', '10', '11', '12']
-  },
-  {
-    id: '5',
-    title: 'Fuel Sneakers',
-    price: 26.75,
-    image: 'https://fuelshoes.com/cdn/shop/files/8_1e1df76b-b544-44fc-8c2f-e31dba4b1eb3.jpg?v=1720001401&width=3000',
-    description: 'Intensive repair treatment for severely damaged hair.',
-    colors: ['black', 'white', 'brown'],
-    sizes: ['8', '9', '10', '11', '12']
-  },
-  {
-    id: '6',
-    title: 'Campus Sneakers',
-    price: 22.95,
-    image: 'https://www.campusshoes.com/cdn/shop/files/FIRST_11G-787_WHT-SIL-B.ORG.webp?v=1745400096',
-    description: 'Protects color-treated hair and prevents fading.',
-    colors: ['black', 'white', 'brown'],
-    sizes: ['7', '8', '9', '10', '11']
-  },
-];
+
 
 interface ProductCardProps {
   item: Product;
   onPress: () => void;
 }
 
+
+const getCurrencyCode = async (countryName: string): Promise<string> => {
+  try {
+      const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
+    const data = await res.json();
+
+    const currencyCode = Object.keys(data[1].currencies)[0]; // e.g. 'INR'
+    return currencyCode;
+  } catch (err) {
+    console.error('Failed to fetch currency code:', err);
+    return 'EUR'; // fallback
+  }
+};
+
+
+const getExchangeRate = async (toCurrency: string): Promise<number> => {
+  try {
+    const res = await fetch(`https://api.frankfurter.app/latest?from=EUR&to=${toCurrency}`);
+    const data = await res.json();
+    console.log(data);
+
+    if (!data || !data.rates || !data.rates[toCurrency]) {
+      throw new Error('Invalid exchange rate response');
+    }
+
+    return data.rates[toCurrency];
+  } catch (err) {
+    console.error('Failed to fetch exchange rate:', err);
+    return 1; // fallback to EUR
+  }
+};
+
+
+const getCurrencySymbol = (currencyCode: string): string => {
+  return (0).toLocaleString(undefined, {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).replace(/\d/g, '').trim();
+};
+
+
 const ProductCard = ({ item, onPress }: ProductCardProps) => {
+  // Collect all image URLs from all colors
+  const allImages = Object.values(item.colorImages || {}).flat();
+
+  // Select a random image from the array
+  const randomImage = allImages.length > 0
+    ? allImages[0]
+    : null;
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: item.image }}
-          style={styles.productImage}
-          resizeMode="cover"
-        />
+        {randomImage ? (
+          <Image
+            source={{ uri: randomImage }}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text>No Image</Text>
+        )}
       </View>
       <Text style={styles.productTitle}>{item.title}</Text>
-      <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+      <Text style={styles.productPrice}>{item.price}</Text>
     </TouchableOpacity>
   );
 };
 
 const EcommerceScreen = () => {
   const navigation = useNavigation<NavigationProps>();
+  const [products, setProducts] = useState<Product[]>([]);
+  const { userData } = useUser();
+
 
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetail', { product });
   };
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!userData?.country) return;
+
+      const countryName = userData.country; // e.g., "India"
+      const currencyCode = await getCurrencyCode(countryName); // e.g., 'INR'
+      console.log(currencyCode);
+      const exchangeRate = await getExchangeRate(currencyCode);
+
+      const querySnapshot = await firestore().collection('EcommerceProducts').get();
+
+      const updatedProducts = querySnapshot.docs.map((doc: any) => {
+        const data = doc.data();
+        const priceInEUR = data.price;
+
+        const convertedPrice = (priceInEUR * exchangeRate).toFixed(2);
+        const priceWithSymbol = `${getCurrencySymbol(currencyCode)} ${convertedPrice}`;
+
+        return {
+          id: doc.id,
+          ...data,
+          price: priceWithSymbol,
+          priceValue: +convertedPrice,
+          currency: currencyCode,
+        };
+      });
+
+      setProducts(updatedProducts);
+    };
+
+    fetchProducts();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-      <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Image 
+          <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/130/130882.png' }}
             style={styles.backIcon}
           />

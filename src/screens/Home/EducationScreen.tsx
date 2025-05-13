@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView, Dimensions, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
-
+import firestore from '@react-native-firebase/firestore';
 // Define types for blog and video items
 interface BlogItem {
   id: string;
@@ -19,21 +19,6 @@ interface VideoItem {
   image: string;
   videoUrl: string;
 }
-
-const blogData: BlogItem[] = [
-  {
-    id: '1',
-    title: "How to Trim Your Orthotics",
-    image: "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?q=80&w=2071&auto=format&fit=crop",
-    description: "Orthotics are designed to support your feet, but sometimes they need a little trimming to fit perfectly inside your shoes. The good news? It's easy to do at home with a few simple steps! Start by removing the insole from your shoe—this will act as a template.Place it over your orthotic, aligning the heels, and trace the outline with a pen or marker.This gives you a guide to follow when trimming.Use sharp scissors and cut slowly along the line.It's better to start conservatively—cut less at first, test the fit, and trim more if needed.Always try the orthotic in your shoe after each adjustment. The goal is for the orthotic to lie flat and snug without bunching or curling.If it still doesn't feel right, make small adjustments until it fits comfortably. A properly trimmed orthotic ensures maximum support and comfort, helping reduce foot fatigue and pain.If you're unsure or nervous about trimming it yourself, consider asking a podiatrist or shoe specialist for help.Remember: your orthotic should work with your shoe, not against it.A good fit means better foot health and daily comfort!"
-  },
-  {
-    id: '2',
-    title: "Menopause and Foot Conditions",
-    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=2070&auto=format&fit=crop",
-    description: "Menopause is a natural phase of life, but it can bring unexpected changes—including in your feet. As estrogen levels drop, the body experiences shifts in bone density, ligament elasticity, and fat distribution, all of which can impact how your feet feel and function. Many women notice foot pain, increased swelling, or a change in foot shape during and after menopause. Arches may flatten, and fat pads that once cushioned your feet may thin out, leading to soreness—especially in the heel and ball of the foot. You may also be more prone to conditions like plantar fasciitis or bunions during this time. Thankfully, there are ways to support your foot health. Wearing supportive, well-cushioned shoes is key. Orthotics or insoles can also help redistribute pressure and relieve pain. Stretching and low-impact exercises like swimming or walking can keep your feet strong and flexible. If foot discomfort becomes a regular issue, it's a good idea to consult a podiatrist. They can assess your foot structure and recommend solutions tailored to your needs. Menopause affects everyone differently, but you don't have to suffer through foot pain—small changes can make a big difference!"
-  },
-];
 
 // Define video data with YouTube URLs for embedding
 const videoData: VideoItem[] = [
@@ -54,6 +39,8 @@ const videoData: VideoItem[] = [
     videoUrl: "Y2VF8tmLFHw"
   },
 ];
+
+
 
 // Helper function to get YouTube embed HTML
 const getYouTubeEmbedHTML = (videoId: string) => {
@@ -88,6 +75,18 @@ const EducationScreen = () => {
   const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
   const [playingVideo, setPlayingVideo] = useState<VideoItem | null>(null);
   const navigation = useNavigation();
+
+  const [blogData, setBlogData] = useState<BlogItem[]>([]);
+  // const [videoData, setVideoData] = useState<VideoItem[]>([]);
+
+  useEffect(() => {
+    const BlogQuery = firestore().collection('Blogs').get();
+    BlogQuery.then((snapshot) => {
+      const blogData = snapshot.docs.map((doc) => doc.data() as BlogItem);
+      console.log(blogData);
+      setBlogData(blogData);
+    });
+  }, []);
 
   const renderBlogItem = (item: BlogItem) => {
     return (
@@ -396,6 +395,7 @@ const styles = StyleSheet.create({
   },
   detailDescription: {
     fontSize: 16,
+    textAlign: 'justify',
     lineHeight: 24,
     marginTop: 15,
   },

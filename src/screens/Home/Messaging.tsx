@@ -55,6 +55,13 @@ const Messaging: React.FC = () => {
     const { userData } = useUser();
     const navigation = useNavigation();
 
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [searchText, setSearchText] = useState('');
+
+    const filteredRetailers = retailers.filter(r =>
+        r.businessName.toLowerCase().includes(searchText.toLowerCase())
+    );
+
     // Fetch all conversations and their message counts
     useEffect(() => {
         let unsubscribeReceived: (() => void) | undefined;
@@ -157,6 +164,8 @@ const Messaging: React.FC = () => {
                                         if (!b.timestamp) return -1;
                                         return (b.timestamp?.toDate?.() || 0) - (a.timestamp?.toDate?.() || 0);
                                     });
+
+                                console.log(conversationsArray);
 
                                 setConversations(conversationsArray);
                                 setLoading(false);
@@ -370,10 +379,10 @@ const Messaging: React.FC = () => {
                                     <Text style={styles.conversationPreview} numberOfLines={1}>
                                         {item.lastMessage}
                                     </Text>
-                                    {item.unreadCount > 0 && (
+                                    {item.messageCount > 0 && (
                                         <View style={styles.messageCountBadge}>
                                             <Text style={styles.messageCountText}>
-                                                {item.unreadCount}
+                                                {item.messageCount}
                                             </Text>
                                         </View>
                                     )}
@@ -480,32 +489,47 @@ const Messaging: React.FC = () => {
 
                     <View style={styles.modalSection}>
                         <Text style={styles.modalLabel}>Select Retailer:</Text>
-                        {loading ? (
-                            <ActivityIndicator size="small" color="#007AFF" style={styles.loading} />
-                        ) : (
-                            <FlatList
-                                data={retailers}
-                                keyExtractor={item => item.id}
-                                ListEmptyComponent={() => (
+
+                        <TouchableOpacity
+                            style={styles.dropdownSelector}
+                            onPress={() => setDropdownOpen(!dropdownOpen)}
+                        >
+                            <Text style={styles.dropdownText}>
+                                {selectedRetailer ? selectedRetailer.businessName : 'Select a retailer'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {dropdownOpen && (
+                            <View style={styles.dropdown}>
+                                <TextInput
+                                    placeholder="Search retailer..."
+                                    placeholderTextColor="#333"
+                                    value={searchText}
+                                    onChangeText={setSearchText}
+                                    style={styles.searchInput}
+                                />
+
+                                {filteredRetailers.length === 0 ? (
                                     <Text style={styles.emptyText}>No retailers found.</Text>
+                                ) : (
+                                    <FlatList
+                                        data={filteredRetailers}
+                                        keyExtractor={item => item.id}
+                                        renderItem={({ item }) => (
+                                            <TouchableOpacity
+                                                style={styles.dropdownItem}
+                                                onPress={() => {
+                                                    setSelectedRetailer(item);
+                                                    setDropdownOpen(false);
+                                                    setSearchText('');
+                                                }}
+                                            >
+                                                <Text style={styles.retailerName}>{item.businessName}</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    />
                                 )}
-                                renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        onPress={() => setSelectedRetailer(item)}
-                                        style={[
-                                            styles.retailerItem,
-                                            selectedRetailer?.id === item.id && styles.selectedRetailerItem
-                                        ]}
-                                    >
-                                        <Text style={[
-                                            styles.retailerName,
-                                            selectedRetailer?.id === item.id && styles.selectedRetailerName
-                                        ]}>
-                                            {item.businessName}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                            />
+                            </View>
                         )}
                     </View>
 
@@ -526,6 +550,8 @@ const Messaging: React.FC = () => {
                                 setModalVisible(false);
                                 setSelectedRetailer(null);
                                 setMessageText('');
+                                setDropdownOpen(false);
+                                setSearchText('');
                             }}
                             style={styles.cancelButton}
                         >
@@ -870,6 +896,35 @@ const styles = StyleSheet.create({
     },
     receivedAuthor: {
         color: '#666'
+    },
+    dropdownSelector: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        padding: 10,
+        borderRadius: 8,
+        backgroundColor: '#f9f9f9',
+    },
+    dropdownText: {
+        color: '#333',
+    },
+    dropdown: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+        marginTop: 5,
+        maxHeight: 200,
+        backgroundColor: '#fff',
+    },
+    searchInput: {
+        borderBottomWidth: 1,
+        borderColor: '#ccc',
+        padding: 8,
+        marginHorizontal: 10,
+    },
+    dropdownItem: {
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
     },
 });
 

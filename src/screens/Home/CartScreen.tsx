@@ -30,6 +30,8 @@ const CartScreen = () => {
   };
 
   const renderCartItem = ({ item }: { item: any }) => {
+
+    console.log(item);
     return (
       <View style={styles.cartItemContainer}>
         <Image 
@@ -107,7 +109,7 @@ const CartScreen = () => {
           <Text style={styles.emptyCartText}>Your cart is empty</Text>
           <TouchableOpacity 
             style={styles.shopNowButton} 
-            onPress={() => navigation.navigate('EcommerceScreen' as never)}
+            onPress={() => navigation.navigate('Ecommerce' as never)}
           >
             <Text style={styles.shopNowButtonText}>Shop Now</Text>
           </TouchableOpacity>

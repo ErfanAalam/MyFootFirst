@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image, ScrollView, Animated, Platform } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { useNavigation } from '@react-navigation/native';
-import { accelerometer, gyroscope, SensorTypes, setUpdateIntervalForType } from 'react-native-sensors';
-import { Observable, Subscription } from 'rxjs';
+import { accelerometer, SensorTypes, setUpdateIntervalForType } from 'react-native-sensors';
+import { Subscription } from 'rxjs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import axios from 'axios';
 
@@ -21,6 +21,45 @@ interface SensorData {
     z: number;
     timestamp: number;
 }
+
+const volumentalHTML = `
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width" />
+    <script
+      async
+      src="https://js.volumental.com/sdk/v1/volumental.js"
+      data-client-id="YOUR_CLIENT_ID_HERE">
+    </script>
+  </head>
+  <body style="margin: 0px; padding: 0px;">
+    <volumental-measurement-embedded id="volumental-widget"></volumental-measurement-embedded>
+    <script>
+      const postMessage = (message) => {
+        if (window?.ReactNativeWebView?.postMessage) {
+          window.ReactNativeWebView.postMessage(message);
+        } else {
+          console.log("Message to post: ", message);
+        }
+      };
+      const element = document.getElementById("volumental-widget");
+
+      element.addEventListener("volumental:on-measurement", (e) => {
+        const { id } = e.detail;
+        postMessage(JSON.stringify({ action: "scan", id: id }));
+      });
+
+      element.addEventListener("volumental:on-opened", (e) => {
+        postMessage(JSON.stringify({ action: "open" }));
+      });
+
+      element.addEventListener("volumental:on-closed", (e) => {
+        postMessage(JSON.stringify({ action: "close" }));
+      });
+    </script>
+  </body>
+</html>
+`;
 
 const FootScanScreen = () => {
     const [capturedImages, setCapturedImages] = useState<FootImage[]>([]);
@@ -545,7 +584,7 @@ const FootScanScreen = () => {
                 style={styles.nextButton}
                 onPress={() => navigation.goBack()}
                 >
-                <Text style={styles.nextText}>Next</Text>
+                <Text style={styles.nextText}>Cancel</Text>
             </TouchableOpacity>
         </View>
     );

@@ -7,14 +7,60 @@ import {
   Dimensions,
   TouchableOpacity,
   StatusBar as RNStatusBar,
+  Button,
+  Modal,
 } from "react-native";
-import { Card, Button } from "react-native-paper";
+import { WebView } from "react-native-webview";
+import { Card } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import FootDiagram from "../../Components/FootDiagram";
 import { useUser } from "../../contexts/UserContext";
 // import FootScanScreen from './FootScanScreen'
+// import volumentalHTML from '../../volumental/volumental.html';
+
+// const volumentalHTML = `
+// <html style="margin: 0; padding: 0">
+//   <head>
+//     <meta name="viewport" content="width=device-width" />
+
+//     <script
+//       async
+//       src="https://js.volumental.com/sdk/v1/volumental.js"
+//       data-client-id="m2IiZHYiVDap31YxnSFbEMoB7MHoCTdW"
+//     ></script>
+//   </head>
+//   <body style="margin: 0; padding: 0">
+//     <volumental-measurement-embedded
+//       id="volumental-widget-identifier"
+//     ></volumental-measurement-embedded>
+//     <script>
+
+//       // Function the send message back to parent application.
+//       const postMessage = message => {
+//         if (window?.ReactNativeWebView?.postMessage) {
+//           window.ReactNativeWebView.postMessage(message);
+//         } else {
+//           console.log(message);
+//         }
+//       };
+
+//        // Register Volumental sdk event handlers.
+//       const element = document.getElementById('volumental-widget-identifier');
+//       element.addEventListener('volumental:on-measurement', (e) => {
+//         const { id } = e.detail;
+//         postMessage(JSON.stringify({event: 'OnMeasurement', data: { id }));
+//       });
+
+//       element.addEventListener('volumental:on-closed', (e) => {
+//         postMessage(JSON.stringify({event: 'OnModalClosed', data: undefined}));
+//       });
+//     </script>
+//   </body>
+// </html>
+// `;
+
 
 const { width } = Dimensions.get("window");
 
@@ -66,6 +112,22 @@ const HomeScreen = () => {
     },
   ]);
 
+  const [showWebView, setShowWebView] = useState(false);
+
+  const handleMessage = (event) => {
+    const data = JSON.parse(event.nativeEvent.data);
+    console.log("Volumental Event:", data);
+
+    if (data.action === "scan") {
+      // You can store the scanned ID or navigate, etc.
+      console.log("Scan ID:", data.id);
+    }
+
+    if (data.action === "close") {
+      setShowWebView(false); // Close the WebView
+    }
+  };
+
   const handlePainPointSelection = (pointId: string) => {
     setPainPoints((prev) =>
       prev.includes(pointId)
@@ -86,7 +148,7 @@ const HomeScreen = () => {
         <View style={styles.fitCheckContainer}>
           <Text style={styles.fitCheckTitle}>Start Your Personal Fit Check </Text>
           <Text style={styles.fitCheckDescription}>Takes just a few minutes — we guide you step by step. The more info you give, the better we match your insoles. You can skip
-          some steps if you prefer.</Text>
+            some steps if you prefer.</Text>
 
 
           <View style={styles.painSection}>
@@ -124,13 +186,26 @@ const HomeScreen = () => {
               />
             </View>
 
-            <Button
-              mode="contained"
+            <TouchableOpacity
               style={styles.nextButton}
-              onPress={() => navigation.navigate("FootScanScreen")}
+              // onPress={() => navigation.navigate("FootScanScreen")}
+              onPress={() => setShowWebView(true)}
             >
               <Text style={styles.buttonText}>Scan Your Foot</Text>
-            </Button>
+            </TouchableOpacity>
+
+            <Modal visible={showWebView} animationType="slide">
+              <WebView
+                source={{ uri: 'file:///android_asset/volumental.html' }}
+                originWhitelist={['*']}
+                style={{ flex: 1 }}
+                onMessage={handleMessage}
+                javaScriptEnabled={true}
+                allowsInlineMediaPlayback={true}
+                mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
+              />
+              {/* <Button title="Close" onPress={() => setShowWebView(false)} /> */}
+            </Modal>
           </View>
         </View>
 
@@ -153,13 +228,12 @@ const HomeScreen = () => {
             ))}
           </View>
 
-          <Button
-            mode="outlined"
+          <TouchableOpacity
             style={styles.showAllButton}
             onPress={() => navigation.navigate("InsoleQuestions")}
           >
             <Text style={styles.showAllButtonText}>Show All</Text>
-          </Button>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -189,7 +263,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
   },
   username: {
-    fontFamily:"OpenSans-Light",
+    fontFamily: "OpenSans-Light",
     fontSize: 18,
     fontWeight: "bold",
     color: "#333",
@@ -257,7 +331,9 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     backgroundColor: "#00843D",
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 18,
+    alignItems: "center",
     borderRadius: 8,
   },
   recommendationsContainer: {
@@ -306,11 +382,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   showAllButton: {
-    borderColor: "#00843D",
+    borderWidth: 1,
+    alignItems:'center',
+    justifyContent:'center',
+    borderColor: '#00843D',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   showAllButtonText: {
-    color: "#00843D",
+    color: '#00843D',
+    fontSize: 16,
+    fontWeight: '600',
   },
   stepIndicatorContainer: {
     flexDirection: "row",
@@ -333,6 +416,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+    fontSize: 16,
   },
 });
 
