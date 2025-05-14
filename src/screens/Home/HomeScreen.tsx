@@ -204,7 +204,7 @@ const HomeScreen = () => {
                 allowsInlineMediaPlayback={true}
                 mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
               />
-              {/* <Button title="Close" onPress={() => setShowWebView(false)} /> */}
+              <Button title="Close" onPress={() => setShowWebView(false)} />
             </Modal>
           </View>
         </View>
