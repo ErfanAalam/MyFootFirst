@@ -1,8 +1,51 @@
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, request,redirect, jsonify
 import cv2
 import numpy as np
 
-app = Flask(__name__)
+import stripe
+# This is your test secret API key.
+stripe.api_key = 'sk_test_51RGKYsKy9tcCJAd4O6jDgdFvwJS4mS9Huf5KyMad1WJyr9jozsiwyfLruIfKOaQ62kY8HmrR5jy5TN0vP0S2ecPS00p1JewSJI'
+
+
+app = Flask(__name__,static_url_path='',
+            static_folder='public')
+
+YOUR_DOMAIN = 'http://192.168.137.6:5000'
+
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    try:
+        data = request.json
+        price = data.get('price')
+        quantity = data.get('quantity')
+        name = data.get('name')
+
+        product = stripe.Product.create(name=name)
+
+        # 2. Create a price for the product
+        created_price = stripe.Price.create(
+            unit_amount=int(round(price * 100)),
+            currency="eur",
+            product=product.id,
+        )
+
+        checkout_session = stripe.checkout.Session.create(
+             line_items=[
+                {
+                    # Provide the exact Price ID (for example, price_1234) of the product you want to sell
+                    'price': created_price.id,
+                    'quantity': quantity,
+                },
+            ],
+            mode='payment',
+            success_url=YOUR_DOMAIN + '?success=true',
+            cancel_url=YOUR_DOMAIN + '?canceled=true',
+        )
+    except Exception as e:
+        return str(e)
+
+    return redirect(checkout_session.url, code=303)
 
 def detect_a4_and_foot(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

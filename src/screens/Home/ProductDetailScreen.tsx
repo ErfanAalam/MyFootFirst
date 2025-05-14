@@ -9,11 +9,13 @@ interface Product {
   id: string;
   title: string;
   price: number;
+  newPrice: string;
   description: string;
   sizes: string[];
   colorImages: {
     [key: string]: string[];
   };
+  priceValue: number;
 }
 
 type RootStackParamList = {
@@ -154,12 +156,17 @@ const ProductDetailScreen = () => {
 
   const handleAddToCart = () => {
     // Create a modified product with the selected color and image
+    console.log(product);
     const productToAdd = {
       ...product,
       selectedColor,
       selectedImage: mainImageUrl,
-      selectedSize
+      selectedSize,
+      price: product.price,
+      newPrice: product.newPrice,
+      priceValue: product.priceValue,
     };
+    console.log(productToAdd);
     addToCart(productToAdd);
   };
 
@@ -253,7 +260,7 @@ const ProductDetailScreen = () => {
 
           <View style={styles.priceContainer}>
             {/* <Text style={styles.priceLabel}>$</Text> */}
-            <Text style={styles.priceValue}>{product.price}</Text>
+            <Text style={styles.priceValue}>{product.newPrice}</Text>
           </View>
 
           {cartItem ? (

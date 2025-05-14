@@ -1,7 +1,6 @@
 // App.tsx
 import React from 'react';
-import {useEffect} from 'react'
-import { Platform } from 'react-native';
+import { useEffect } from 'react'
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
@@ -20,7 +19,7 @@ const App = () => {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}> 
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider>
         <UserProvider>
           <CartProvider>

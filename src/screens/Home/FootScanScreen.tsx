@@ -22,44 +22,6 @@ interface SensorData {
     timestamp: number;
 }
 
-const volumentalHTML = `
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width" />
-    <script
-      async
-      src="https://js.volumental.com/sdk/v1/volumental.js"
-      data-client-id="YOUR_CLIENT_ID_HERE">
-    </script>
-  </head>
-  <body style="margin: 0px; padding: 0px;">
-    <volumental-measurement-embedded id="volumental-widget"></volumental-measurement-embedded>
-    <script>
-      const postMessage = (message) => {
-        if (window?.ReactNativeWebView?.postMessage) {
-          window.ReactNativeWebView.postMessage(message);
-        } else {
-          console.log("Message to post: ", message);
-        }
-      };
-      const element = document.getElementById("volumental-widget");
-
-      element.addEventListener("volumental:on-measurement", (e) => {
-        const { id } = e.detail;
-        postMessage(JSON.stringify({ action: "scan", id: id }));
-      });
-
-      element.addEventListener("volumental:on-opened", (e) => {
-        postMessage(JSON.stringify({ action: "open" }));
-      });
-
-      element.addEventListener("volumental:on-closed", (e) => {
-        postMessage(JSON.stringify({ action: "close" }));
-      });
-    </script>
-  </body>
-</html>
-`;
 
 const FootScanScreen = () => {
     const [capturedImages, setCapturedImages] = useState<FootImage[]>([]);

@@ -7,8 +7,9 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  Alert,
 } from 'react-native';
-import { getAuth, signInWithEmailAndPassword, signOut } from '@react-native-firebase/auth';
+import { getAuth } from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 
@@ -18,15 +19,14 @@ type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
   Home: undefined;
+  ForgotPasswordScreen: undefined;
 };
 
 // Export the logout function so it can be used by other screens
-export const handleLogout = async (navigation: NavigationProp<RootStackParamList>) => {
-  try { 
+export const handleLogout = async () => {
+  try {
     await getAuth().signOut();
     console.log('User signed out successfully');
-    // The RootNavigator will automatically redirect to AuthStack
-    // which contains the Welcome screen as its first screen
   } catch (error) {
     console.error('Error signing out:', error);
   }
@@ -43,10 +43,9 @@ const LoginScreen = () => {
     getAuth().signInWithEmailAndPassword(email, password)
       .then(userCredential => {
         console.log('Logged in!', userCredential.user.email);
-        // navigation.navigate('MainTabs');
       })
       .catch(error => {
-        console.error('Login error:', error.message);
+        Alert.alert('Login error:', error.message);
       });
   };
 
@@ -155,7 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    color:'black',
+    color: 'black',
     borderRadius: 4,
     padding: 12,
     marginBottom: 16,
@@ -216,7 +215,7 @@ const styles = StyleSheet.create({
   socialButtonText: {
     fontSize: 14,
     color: '#212121',
-  },       
+  },
   footer: {
     position: 'relative',
     bottom: -200,
@@ -224,7 +223,7 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     padding: 16,
-    zIndex:0,
+    zIndex: 0,
   },
   footerText: {
     fontSize: 12,

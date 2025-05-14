@@ -1,21 +1,68 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  Image, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  Platform, 
-  StatusBar 
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  SafeAreaView,
+  Platform,
+  StatusBar,
+  Alert,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
+import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { useCart } from '../../contexts/CartContext';
 
 const CartScreen = () => {
   const { items, updateQuantity, removeFromCart, getCartTotal } = useCart();
   const navigation = useNavigation();
+
+  console.log(items);
+
+  const [checkoutUrl, setCheckoutUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+
+
+  const handlePay = async () => {
+    console.log(items);
+    setLoading(true);
+    try {
+      const response = await axios.post('http://192.168.137.6:5000/create-checkout-session', {
+        name: items[0].title,
+        price: items[0].price,
+        quantity: items[0].quantity,
+      });
+      console.log(response.request);
+      setCheckoutUrl(response.request.responseURL);
+    } catch (error) {
+      console.error('Error creating Stripe session:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (checkoutUrl) {
+    return (
+      <View style={{ flex: 1, marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight }}>
+        <WebView
+          source={{ uri: checkoutUrl }}
+          onNavigationStateChange={(navState) => {
+            if (navState.url.includes('?success=true')) {
+              Alert.alert('Payment successful!');
+              setCheckoutUrl('');
+            } else if (navState.url.includes('?canceled=true')) {
+              Alert.alert('Payment canceled.');
+              setCheckoutUrl(''); 
+            }
+          }}
+        />
+      </View>
+    );
+  }
 
   const handleIncreaseQuantity = (productId: string, currentQuantity: number) => {
     updateQuantity(productId, currentQuantity + 1);
@@ -34,23 +81,24 @@ const CartScreen = () => {
     console.log(item);
     return (
       <View style={styles.cartItemContainer}>
-        <Image 
+        <Image
           source={{ uri: item.image }}
           style={styles.productImage}
           resizeMode="cover"
         />
         <View style={styles.productDetails}>
           <Text style={styles.productTitle}>{item.title}</Text>
-          <Text style={styles.productPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
+          <Text style={styles.productPrice}>{(item.newPrice).slice(0, 1)} {(item.priceValue * item.quantity).toFixed(2)}</Text>
+          {/* <Text style={styles.productPrice}>{item.newPrice}</Text> */}
           <View style={styles.quantityContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.quantityButton}
               onPress={() => handleDecreaseQuantity(item.id, item.quantity)}
             >
               <Text style={styles.quantityButtonText}>-</Text>
             </TouchableOpacity>
             <Text style={styles.quantityText}>{item.quantity}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.quantityButton}
               onPress={() => handleIncreaseQuantity(item.id, item.quantity)}
             >
@@ -58,8 +106,8 @@ const CartScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.removeButton} 
+        <TouchableOpacity
+          style={styles.removeButton}
           onPress={() => removeFromCart(item.id)}
         >
           <Text style={styles.removeButtonText}>×</Text>
@@ -71,11 +119,11 @@ const CartScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Image 
+          <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/130/130882.png' }}
             style={styles.backIcon}
           />
@@ -85,7 +133,7 @@ const CartScreen = () => {
       </View>
 
       {items.length > 0 ? (
-        <>
+        <View style={styles.cartList}>
           <FlatList
             data={items}
             renderItem={renderCartItem}
@@ -97,18 +145,23 @@ const CartScreen = () => {
           <View style={styles.cartFooter}>
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalAmount}>${getCartTotal().toFixed(2)}</Text>
+              <Text style={styles.totalAmount}>{(items[0].newPrice).slice(0, 1)}{(getCartTotal()).toFixed(2)}</Text>
+              {/* <Text style={styles.totalAmount}>{getCartTotal()}</Text> */}
             </View>
-            <TouchableOpacity style={styles.checkoutButton}>
-              <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+            <TouchableOpacity style={styles.checkoutButton} onPress={handlePay}>
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
+              )}
             </TouchableOpacity>
           </View>
-        </>
+        </View>
       ) : (
         <View style={styles.emptyCartContainer}>
           <Text style={styles.emptyCartText}>Your cart is empty</Text>
-          <TouchableOpacity 
-            style={styles.shopNowButton} 
+          <TouchableOpacity
+            style={styles.shopNowButton}
             onPress={() => navigation.navigate('Ecommerce' as never)}
           >
             <Text style={styles.shopNowButtonText}>Shop Now</Text>

@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { getFirestore, doc, getDoc, setDoc, updateDoc } from '@react-native-firebase/firestore';
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { getFirestore, doc, getDoc, updateDoc } from '@react-native-firebase/firestore';
+import {getAuth, FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 interface UserData {
   id: string;
@@ -9,6 +9,7 @@ interface UserData {
   email: string;
   gender: string;
   insoleAnswers?: Record<string, any>;
+  country?: string;
 }
 
 interface UserContextType {
@@ -28,16 +29,15 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     // Listen for auth state changes
-    const unsubscribe = auth().onAuthStateChanged(async (authUser: FirebaseAuthTypes.User | null) => {
-      console.log(authUser)
+    const unsubscribe = getAuth().onAuthStateChanged(async (authUser: FirebaseAuthTypes.User | null) => {
       setUser(authUser);
-      
+
       if (authUser) {
         await fetchUserData(authUser.uid);
       } else {
         setUserData(null);
       }
-      
+
       setLoading(false);
     });
 
@@ -47,9 +47,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchUserData = async (userId: string) => {
     try {
       const firestore = getFirestore();
-      const userDocRef = doc(firestore, "users", userId);
+      const userDocRef = doc(firestore, 'users', userId);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (userDoc.exists) {
         const data = userDoc.data() || {};
         setUserData({
@@ -59,48 +59,52 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email: data.email || '',
           gender: data.gender || '',
           insoleAnswers: data.insoleAnswers || {},
-          ...data
+          country: data.country || '',
         });
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      console.error('Error fetching user data:', error);
     }
   };
 
   const updateUserData = async (data: Partial<UserData>) => {
-    if (!user) return;
-    
+    if (!user) {
+      return;
+    }
+
     try {
       const firestore = getFirestore();
-      const userDocRef = doc(firestore, "users", user.uid);
+      const userDocRef = doc(firestore, 'users', user.uid);
       await updateDoc(userDocRef, data);
-      
+
       // Update local state
       setUserData(prev => prev ? { ...prev, ...data } : null);
     } catch (error) {
-      console.error("Error updating user data:", error);
+      console.error('Error updating user data:', error);
       throw error;
     }
   };
 
   const saveInsoleAnswers = async (answers: Record<string, any>): Promise<void> => {
-    if (!user) return;
-    
+    if (!user){
+      return;
+    }
+
     try {
       const firestore = getFirestore();
-      const userDocRef = doc(firestore, "users", user.uid);
-      
+      const userDocRef = doc(firestore, 'users', user.uid);
+
       // Update only the insole answers in Firestore
       await updateDoc(userDocRef, {
-        insoleAnswers: answers
+        insoleAnswers: answers,
       });
-      
+
       // Update local state
-      setUserData(prev => 
+      setUserData(prev =>
         prev ? { ...prev, insoleAnswers: answers } : null
       );
     } catch (error) {
-      console.error("Error saving insole answers:", error);
+      console.error('Error saving insole answers:', error);
       throw error;
     }
   };
@@ -110,7 +114,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     userData,
     loading,
     updateUserData,
-    saveInsoleAnswers
+    saveInsoleAnswers,
   };
 
   return (
@@ -126,4 +130,4 @@ export const useUser = (): UserContextType => {
     throw new Error('useUser must be used within a UserProvider');
   }
   return context;
-}; 
+};

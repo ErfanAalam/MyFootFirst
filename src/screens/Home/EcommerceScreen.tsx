@@ -10,10 +10,14 @@ interface Product {
   id: string;
   title: string;
   price: number;
+  newPrice: string;
   image: string;
   description: string;
   colors: string[];
   sizes?: string[];
+  colorImages: {
+    [key: string]: string[];
+  };
 }
 
 type RootStackParamList = {
@@ -34,14 +38,17 @@ interface ProductCardProps {
 
 const getCurrencyCode = async (countryName: string): Promise<string> => {
   try {
-      const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
+    const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
     const data = await res.json();
 
-    const currencyCode = Object.keys(data[1].currencies)[0]; // e.g. 'INR'
-    return currencyCode;
+    if (Array.isArray(data) && data.length > 0 && data[0].currencies) {
+      return Object.keys(data[0].currencies)[0];
+    }
+
+    throw new Error('Currency data not found');
   } catch (err) {
     console.error('Failed to fetch currency code:', err);
-    return 'EUR'; // fallback
+    return 'EUR';
   }
 };
 
@@ -75,7 +82,6 @@ const getCurrencySymbol = (currencyCode: string): string => {
 
 
 const ProductCard = ({ item, onPress }: ProductCardProps) => {
-  // Collect all image URLs from all colors
   const allImages = Object.values(item.colorImages || {}).flat();
 
   // Select a random image from the array
@@ -97,7 +103,7 @@ const ProductCard = ({ item, onPress }: ProductCardProps) => {
         )}
       </View>
       <Text style={styles.productTitle}>{item.title}</Text>
-      <Text style={styles.productPrice}>{item.price}</Text>
+      <Text style={styles.productPrice}>{item.newPrice}</Text>
     </TouchableOpacity>
   );
 };
@@ -116,10 +122,28 @@ const EcommerceScreen = () => {
     const fetchProducts = async () => {
       if (!userData?.country) return;
 
-      const countryName = userData.country; // e.g., "India"
-      const currencyCode = await getCurrencyCode(countryName); // e.g., 'INR'
-      console.log(currencyCode);
-      const exchangeRate = await getExchangeRate(currencyCode);
+      const allowedCurrencies = ['USD', 'EUR', 'INR', 'GBP'];
+      const countryName = userData.country;
+
+      let currencyCode = 'EUR'; // Default
+      try {
+        const fetchedCurrencyCode = await getCurrencyCode(countryName);
+        if (allowedCurrencies.includes(fetchedCurrencyCode)) {
+          currencyCode = fetchedCurrencyCode;
+        }
+      } catch (err) {
+        console.error('Failed to get valid currency code:', err);
+      }
+
+      let exchangeRate = 1; // Default is EUR
+      if (currencyCode !== 'EUR') {
+        try {
+          exchangeRate = await getExchangeRate(currencyCode);
+        } catch (err) {
+          console.error('Failed to get exchange rate:', err);
+          exchangeRate = 1;
+        }
+      }
 
       const querySnapshot = await firestore().collection('EcommerceProducts').get();
 
@@ -133,7 +157,8 @@ const EcommerceScreen = () => {
         return {
           id: doc.id,
           ...data,
-          price: priceWithSymbol,
+          price: priceInEUR,
+          newPrice: priceWithSymbol,
           priceValue: +convertedPrice,
           currency: currencyCode,
         };
@@ -143,7 +168,7 @@ const EcommerceScreen = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [userData?.country]);
 
   return (
     <SafeAreaView style={styles.container}>

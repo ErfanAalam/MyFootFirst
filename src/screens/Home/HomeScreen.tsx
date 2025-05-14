@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 import {
   View,
   Text,
@@ -85,6 +85,7 @@ const HomeScreen = () => {
   const { userData } = useUser();
   const [selectedFoot, setSelectedFoot] = useState<"left" | "right">("left");
   const [painPoints, setPainPoints] = useState<string[]>([]);
+  const webViewRef = useRef(null);
   const [products, setProducts] = useState<Product[]>([
     {
       id: "1",

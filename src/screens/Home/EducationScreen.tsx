@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView, Dimensions, SafeAreaView, StatusBar, Platform } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, SafeAreaView, StatusBar, Platform } from 'react-native';
+// import { useNavigation } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import firestore from '@react-native-firebase/firestore';
 // Define types for blog and video items
@@ -24,19 +24,19 @@ interface VideoItem {
 const videoData: VideoItem[] = [
   {
     id: '1',
-    title: "Sleep Preparation",
-    subtitle: "Guided Sleep Meditation",
-    duration: "15 min",
-    image: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=2070&auto=format&fit=crop",
-    videoUrl: "rRFu0IKNMks?si=FqTDYg6A4oQKPNhS"
+    title: 'Sleep Preparation',
+    subtitle: 'Guided Sleep Meditation',
+    duration: '15 min',
+    image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=2070&auto=format&fit=crop',
+    videoUrl: 'rRFu0IKNMks?si=FqTDYg6A4oQKPNhS',
   },
   {
     id: '2',
-    title: "Morning Energy",
-    subtitle: "Start Your Day Right",
-    duration: "7 min",
-    image: "https://miro.medium.com/v2/resize:fit:1400/0*92EtfQXxrWp8Pk_a",
-    videoUrl: "Y2VF8tmLFHw"
+    title: 'Morning Energy',
+    subtitle: 'Start Your Day Right',
+    duration: '7 min',
+    image: 'https://miro.medium.com/v2/resize:fit:1400/0*92EtfQXxrWp8Pk_a',
+    videoUrl: 'Y2VF8tmLFHw',
   },
 ];
 
@@ -74,18 +74,21 @@ const EducationScreen = () => {
   const [activeTab, setActiveTab] = useState('blog');
   const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
   const [playingVideo, setPlayingVideo] = useState<VideoItem | null>(null);
-  const navigation = useNavigation();
 
   const [blogData, setBlogData] = useState<BlogItem[]>([]);
-  // const [videoData, setVideoData] = useState<VideoItem[]>([]);
 
   useEffect(() => {
-    const BlogQuery = firestore().collection('Blogs').get();
-    BlogQuery.then((snapshot) => {
-      const blogData = snapshot.docs.map((doc) => doc.data() as BlogItem);
-      console.log(blogData);
-      setBlogData(blogData);
-    });
+    const unsubscribe = firestore()
+      .collection('Blogs')
+      .onSnapshot(snapshot => {
+        const BlogData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as BlogItem[];
+        setBlogData(BlogData);
+      });
+
+    return () => unsubscribe();
   }, []);
 
   const renderBlogItem = (item: BlogItem) => {
@@ -124,7 +127,9 @@ const EducationScreen = () => {
   };
 
   const renderBlogDetail = () => {
-    if (!selectedBlog) return null;
+    if (!selectedBlog) {
+      return null;
+    }
 
     return (
       <View style={styles.detailContainer}>
@@ -146,7 +151,9 @@ const EducationScreen = () => {
   };
 
   const renderVideoPlayer = () => {
-    if (!playingVideo) return null;
+    if (!playingVideo) {
+      return null;
+    }
 
     return (
       <View style={styles.detailContainer}>
