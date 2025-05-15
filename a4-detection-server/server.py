@@ -18,7 +18,7 @@ def create_checkout_session():
     try:
         data = request.json
         price = data.get('price')
-        quantity = data.get('quantity')
+        # quantity = data.get('quantity')
         name = data.get('name')
 
         product = stripe.Product.create(name=name)
@@ -35,10 +35,11 @@ def create_checkout_session():
                 {
                     # Provide the exact Price ID (for example, price_1234) of the product you want to sell
                     'price': created_price.id,
-                    'quantity': quantity,
+                    'quantity': 1,
                 },
             ],
             mode='payment',
+            # payment_method_types=['card','google_pay','apple_pay'],
             success_url=YOUR_DOMAIN + '?success=true',
             cancel_url=YOUR_DOMAIN + '?canceled=true',
         )

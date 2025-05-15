@@ -16,6 +16,7 @@ import CartScreen from '../screens/Home/CartScreen';
 import ShoesSize from '../screens/Home/ShoesSize';
 import EcommerceScreen from '../screens/Home/EcommerceScreen';
 import Messaging from '../screens/Home/Messaging';
+import OrderHistory from '../screens/Home/OrderHistory';
 const Stack = createNativeStackNavigator();
 
 const RootNavigator = () => {
@@ -68,6 +69,7 @@ const RootNavigator = () => {
             <Stack.Screen name="ShoesSize" component={ShoesSize}/>
             <Stack.Screen name="Ecommerce" component={EcommerceScreen}/>
             <Stack.Screen name="Messaging" component={Messaging}/>
+            <Stack.Screen name="OrderHistory" component={OrderHistory}/>
           </Stack.Navigator>
         ) : (
           <AuthStack />

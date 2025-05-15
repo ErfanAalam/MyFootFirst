@@ -1,68 +1,23 @@
-import React, { useEffect, useState,useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Dimensions,
   TouchableOpacity,
   StatusBar as RNStatusBar,
   Button,
   Modal,
-} from "react-native";
-import { WebView } from "react-native-webview";
-import { Card } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import FootDiagram from "../../Components/FootDiagram";
-import { useUser } from "../../contexts/UserContext";
-// import FootScanScreen from './FootScanScreen'
-// import volumentalHTML from '../../volumental/volumental.html';
-
-// const volumentalHTML = `
-// <html style="margin: 0; padding: 0">
-//   <head>
-//     <meta name="viewport" content="width=device-width" />
-
-//     <script
-//       async
-//       src="https://js.volumental.com/sdk/v1/volumental.js"
-//       data-client-id="m2IiZHYiVDap31YxnSFbEMoB7MHoCTdW"
-//     ></script>
-//   </head>
-//   <body style="margin: 0; padding: 0">
-//     <volumental-measurement-embedded
-//       id="volumental-widget-identifier"
-//     ></volumental-measurement-embedded>
-//     <script>
-
-//       // Function the send message back to parent application.
-//       const postMessage = message => {
-//         if (window?.ReactNativeWebView?.postMessage) {
-//           window.ReactNativeWebView.postMessage(message);
-//         } else {
-//           console.log(message);
-//         }
-//       };
-
-//        // Register Volumental sdk event handlers.
-//       const element = document.getElementById('volumental-widget-identifier');
-//       element.addEventListener('volumental:on-measurement', (e) => {
-//         const { id } = e.detail;
-//         postMessage(JSON.stringify({event: 'OnMeasurement', data: { id }));
-//       });
-
-//       element.addEventListener('volumental:on-closed', (e) => {
-//         postMessage(JSON.stringify({event: 'OnModalClosed', data: undefined}));
-//       });
-//     </script>
-//   </body>
-// </html>
-// `;
+} from 'react-native';
+// import { WebView } from 'react-native-webview';
+import { Card } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import FootDiagram from '../../Components/FootDiagram';
+import { useUser } from '../../contexts/UserContext';
 
 
-const { width } = Dimensions.get("window");
 
 type Product = {
   id: string;
@@ -83,51 +38,51 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { userData } = useUser();
-  const [selectedFoot, setSelectedFoot] = useState<"left" | "right">("left");
+  const [selectedFoot, setSelectedFoot] = useState<'left' | 'right'>('left');
   const [painPoints, setPainPoints] = useState<string[]>([]);
-  const webViewRef = useRef(null);
   const [products, setProducts] = useState<Product[]>([
     {
-      id: "1",
-      price: "$49.99",
-      title: "Insole 1",
-      image: require("../../assets/images/banner1.jpg"),
+      id: '1',
+      price: '$49.99',
+      title: 'Insole 1',
+      image: require('../../assets/images/banner1.jpg'),
     },
     {
-      id: "2",
-      price: "$59.99",
-      title: "Insole 2",
-      image: require("../../assets/images/banner2.webp"),
+      id: '2',
+      price: '$59.99',
+      title: 'Insole 2',
+      image: require('../../assets/images/banner2.webp'),
     },
     {
-      id: "3",
-      price: "$39.99",
-      title: "Insole 3",
-      image: require("../../assets/images/banner3.jpeg"),
+      id: '3',
+      price: '$39.99',
+      title: 'Insole 3',
+      image: require('../../assets/images/banner3.jpeg'),
     },
     {
-      id: "4",
-      price: "$39.99",
-      title: "Insole 4",
-      image: require("../../assets/images/banner3.jpeg"),
+      id: '4',
+      price: '$39.99',
+      title: 'Insole 4',
+      image: require('../../assets/images/banner3.jpeg'),
     },
   ]);
 
-  const [showWebView, setShowWebView] = useState(false);
+  // const [showWebView, setShowWebView] = useState(false);
 
-  const handleMessage = (event) => {
-    const data = JSON.parse(event.nativeEvent.data);
-    console.log("Volumental Event:", data);
+  // const handleMessage = (event: any) => {
+  //   const data = JSON.parse(event.nativeEvent.data);
+  //   console.log('Volumental Event:', data);
 
-    if (data.action === "scan") {
-      // You can store the scanned ID or navigate, etc.
-      console.log("Scan ID:", data.id);
-    }
+  //   if (data.event === 'OnMeasurement') {
+  //     // You can store the scanned ID or navigate, etc.
+  //     console.log('Scan ID:', data.data.id);
+  //   }
 
-    if (data.action === "close") {
-      setShowWebView(false); // Close the WebView
-    }
-  };
+  //   if (data.event === 'OnModalClosed') {
+  //     setShowWebView(false); // Close the WebView
+  //     navigation.navigate("InsoleQuestions")
+  //   }
+  // };
 
   const handlePainPointSelection = (pointId: string) => {
     setPainPoints((prev) =>
@@ -189,13 +144,13 @@ const HomeScreen = () => {
 
             <TouchableOpacity
               style={styles.nextButton}
-              // onPress={() => navigation.navigate("FootScanScreen")}
-              onPress={() => setShowWebView(true)}
+              onPress={() => navigation.navigate("FootScanScreen")}
+            // onPress={() => setShowWebView(true)}
             >
               <Text style={styles.buttonText}>Scan Your Foot</Text>
             </TouchableOpacity>
 
-            <Modal visible={showWebView} animationType="slide">
+            {/* <Modal visible={showWebView} animationType="slide">
               <WebView
                 source={{ uri: 'file:///android_asset/volumental.html' }}
                 originWhitelist={['*']}
@@ -206,7 +161,7 @@ const HomeScreen = () => {
                 mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
               />
               <Button title="Close" onPress={() => setShowWebView(false)} />
-            </Modal>
+            </Modal> */}
           </View>
         </View>
 
@@ -384,8 +339,8 @@ const styles = StyleSheet.create({
   },
   showAllButton: {
     borderWidth: 1,
-    alignItems:'center',
-    justifyContent:'center',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderColor: '#00843D',
     paddingHorizontal: 10,
     paddingVertical: 10,

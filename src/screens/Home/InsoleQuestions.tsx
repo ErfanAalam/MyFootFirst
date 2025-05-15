@@ -18,10 +18,10 @@ import { useUser } from '../../contexts/UserContext';
 type RootStackParamList = {
   InsoleQuestions: undefined;
   InsoleRecommendation: { recommendedInsole: 'Sport' | 'Comfort' | 'Stability' };
-  ShoesSize: { 
-    answers: any, 
-    gender: string, 
-    recommendedInsole: 'Sport' | 'Comfort' | 'Stability' 
+  ShoesSize: {
+    answers: any,
+    gender: string,
+    recommendedInsole: 'Sport' | 'Comfort' | 'Stability'
   };
 };
 
@@ -56,20 +56,20 @@ const options = {
 // Function to calculate age group from DOB
 const calculateAgeGroup = (dob: string): string => {
   if (!dob) return '';
-  
+
   // Parse DD/MM/YYYY format
   const [day, month, year] = dob.split('/').map(num => parseInt(num, 10));
   const birthDate = new Date(year, month - 1, day); // month is 0-indexed in JS Date
-  
+
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
-  
+
   // Check if birthday hasn't occurred yet this year
   const monthDiff = today.getMonth() - birthDate.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  
+
   if (age >= 18 && age <= 40) return '18-40';
   if (age >= 41 && age <= 60) return '41-60';
   if (age > 60) return '60+';
@@ -100,7 +100,7 @@ const InsoleQuestions = () => {
         const calculatedAgeGroup = calculateAgeGroup(userDataWithDob.dob);
         setAnswers(prev => ({ ...prev, ageGroup: calculatedAgeGroup }));
       }
-      
+
       // Set activity level if available in userData
       if (userDataWithDob.activityLevel) {
         setAnswers(prev => ({ ...prev, activityLevel: userDataWithDob.activityLevel }));
@@ -114,7 +114,7 @@ const InsoleQuestions = () => {
   };
 
   const calculateRecommendation = async () => {
-    if(answers.ageGroup === '' || answers.activityLevel === '' || answers.painLocation === '' || answers.painFrequency === '' || answers.footPosture === '' || answers.archType === '' || answers.medicalCondition === '') {
+    if (answers.ageGroup === '' || answers.activityLevel === '' || answers.painLocation === '' || answers.painFrequency === '' || answers.footPosture === '' || answers.archType === '' || answers.medicalCondition === '') {
       Alert.alert('Please answer all questions before submitting.');
       return;
     }
@@ -125,32 +125,32 @@ const InsoleQuestions = () => {
       if (answers.ageGroup === '18-40') scores.Sport += 25;
       else if (answers.ageGroup === '41-60') scores.Comfort += 25;
       else if (answers.ageGroup === '60+') scores.Stability += 25;
-  
+
       if (answers.activityLevel === 'Active') scores.Sport += 25;
       else if (answers.activityLevel === 'Moderate') scores.Comfort += 25;
       else if (answers.activityLevel === 'Sedentary') scores.Stability += 25;
-  
+
       if (answers.painLocation === 'Forefoot') scores.Sport += 20;
       else if (['Heel', 'Lower Back', 'Knee'].includes(answers.painLocation)) scores.Stability += 20;
       else scores.Comfort += 20;
-  
+
       if (answers.painFrequency === 'Sometimes') scores.Comfort += 15;
       else if (answers.painFrequency === 'Regularly') scores.Comfort += 15;
       else if (answers.painFrequency === 'Permanently') scores.Stability += 15;
       else scores.Sport += 15;
-  
+
       if (answers.footPosture === 'Rolling Inwards') scores.Stability += 10;
       else if (answers.footPosture === 'Rolling Outwards') scores.Comfort += 10;
       else if (answers.footPosture === 'Normal') scores.Sport += 10;
-  
+
       if (answers.archType === 'Flat') scores.Stability += 5;
       else if (answers.archType === 'High Arch') scores.Sport += 5;
       else scores.Comfort += 5;
-  
+
       const recommended = Object.keys(scores).reduce((a, b) =>
         scores[a as keyof ScoreType] > scores[b as keyof ScoreType] ? a : b
       ) as keyof ScoreType;
-  
+
       const answersToSave = {
         // ageGroup: answers.ageGroup,
         // activityLevel: answers.activityLevel,
@@ -161,9 +161,9 @@ const InsoleQuestions = () => {
         medicalCondition: answers.medicalCondition,
       };
       console.log('Answers to save:', answersToSave);
-      
 
-      navigation.navigate('ShoesSize', { 
+
+      navigation.navigate('ShoesSize', {
         answers: answersToSave,
         gender: userData?.gender || '',
         recommendedInsole: recommended
@@ -194,13 +194,13 @@ const InsoleQuestions = () => {
           style={styles.selectIcon}
         />
       </TouchableOpacity>
-      <Modal 
-        transparent={true} 
-        animationType="slide" 
+      <Modal
+        transparent={true}
+        animationType="slide"
         visible={modalField === field}
         onRequestClose={() => setModalField(null)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.modalContainer}
           activeOpacity={1}
           onPress={() => setModalField(null)}
@@ -228,10 +228,10 @@ const InsoleQuestions = () => {
                 </TouchableOpacity>
               )}
             />
-            <Button 
+            <Button
               onPress={() => setModalField(null)}
               mode="contained"
-              style={{marginTop: 10, backgroundColor: '#00843D'}}
+              style={{ marginTop: 10, backgroundColor: '#00843D' }}
             >
               Cancel
             </Button>
@@ -240,7 +240,7 @@ const InsoleQuestions = () => {
       </Modal>
     </View>
   );
-  
+
   const renderProgressBar = () => {
     const totalQuestions = 7; // Total number of questions reduced by 1
     const answeredQuestions = Object.values(answers).filter(answer => answer !== '').length;

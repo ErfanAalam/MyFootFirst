@@ -21,7 +21,11 @@ type RootStackParamList = {
         recommendedInsole: 'Sport' | 'Comfort' | 'Stability';
     };
     InsoleRecommendation: {
-        recommendedInsole: 'Sport' | 'Comfort' | 'Stability'
+        recommendedInsole: 'Sport' | 'Comfort' | 'Stability',
+        shoeSize: {
+            country: string;
+            size: number;
+        };
     };
 };
 
@@ -87,29 +91,13 @@ const ShoesSize = () => {
                 size: sizeChart[selectedCountry][sizeIndex]
             };
 
-            console.log(shoeSize)
-            console.log(answers)
+            console.log(shoeSize);
+            console.log(answers);
             // Only proceed if user is authenticated
-            if (user) {
-
-                const firestore = getFirestore();
-                const userDocRef = doc(firestore, 'users', user.uid);
-                console.log(getDoc(userDocRef))
-
-                // Store data directly in Firestore
-                // await updateDoc(userDocRef, {
-                //     insoleAnswers: {
-                //         ...answers,
-                //         recommendedInsole,
-                //         shoeSize: shoeSize
-                //     }
-                // });
-
-            } else {
-                console.warn('No user logged in, cannot save data');
-            }
-
-            console.log(userData)
+            navigation.navigate('InsoleRecommendation', {
+                recommendedInsole: recommendedInsole,
+                shoeSize: shoeSize,
+            });
 
             // Navigate to recommendation screen
 
@@ -118,9 +106,7 @@ const ShoesSize = () => {
             Alert.alert('Error', 'Failed to save your shoe size. Please try again.');
         } finally {
             setLoading(false);
-            navigation.navigate('InsoleRecommendation', {
-                recommendedInsole: recommendedInsole,
-            });
+ 
         }
     };
 

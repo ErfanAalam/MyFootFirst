@@ -10,6 +10,8 @@ interface UserData {
   gender: string;
   insoleAnswers?: Record<string, any>;
   country?: string;
+  phone?: string;
+  dob?: string;
 }
 
 interface UserContextType {
@@ -60,6 +62,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           gender: data.gender || '',
           insoleAnswers: data.insoleAnswers || {},
           country: data.country || '',
+          phone: data.phone || '',
+          dob: data.dob || '',
+          ...data,
         });
       }
     } catch (error) {

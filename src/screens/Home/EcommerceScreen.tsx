@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import firestore from '@react-native-firebase/firestore';
 import { useUser } from '../../contexts/UserContext';
+import { useCart } from '../../contexts/CartContext';
 
 // Define types
 interface Product {
@@ -112,6 +113,7 @@ const EcommerceScreen = () => {
   const navigation = useNavigation<NavigationProps>();
   const [products, setProducts] = useState<Product[]>([]);
   const { userData } = useUser();
+  const { items } = useCart();
 
 
   const handleProductPress = (product: Product) => {
@@ -188,6 +190,9 @@ const EcommerceScreen = () => {
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/263/263142.png' }}
             style={styles.cartIcon}
           />
+          {items.length > 0 && (
+            <Text style={styles.cartCounter}>{items.length}</Text>
+          )}
         </TouchableOpacity>
       </View>
       <Text style={styles.title}>Explore Products</Text>
@@ -288,6 +293,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#00843D',
+  },
+  cartCounter: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    position: 'absolute',
+    backgroundColor: '#00843D',
+    right: -5,
+    top: -5,
+    borderWidth: 1,
+    borderColor: '#000',
+    borderRadius: 100,
+    height: 20,
+    width: 20,
+    textAlign: 'center',
+    padding: 2,
   },
 });
 

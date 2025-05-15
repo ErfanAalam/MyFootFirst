@@ -10,7 +10,7 @@ type InsoleType = 'Sport' | 'Comfort' | 'Stability';
 
 type RootStackParamList = {
   InsoleQuestions: undefined;
-  InsoleRecommendation: { recommendedInsole: InsoleType };
+  InsoleRecommendation: { recommendedInsole: InsoleType, shoeSize: { country: string, size: number } };
   Cart: undefined;
 };
 
@@ -19,9 +19,11 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'InsoleRecom
 
 const insoleData = {
   Sport: {
+    id: 'insole-sport',
     name: 'SPORT Insole',
     image: require('../../assets/images/banner1.jpg'), // Add appropriate image path
     price: 49.99,
+    newPrice: 49.99,
     features: [
       'Lightweight and flexible for active movement',
       'Ideal for high arches and athletic use',
@@ -31,9 +33,11 @@ const insoleData = {
     ],
   },
   Comfort: {
+    id: 'insole-comfort',
     name: 'COMFORT Insole',
     image: require('../../assets/images/banner2.webp'), // Add appropriate image path
     price: 39.99,
+    newPrice: 39.99,
     features: [
       'All-day cushioning for casual and work shoes',
       'Great for normal arches and moderate activity',
@@ -43,9 +47,11 @@ const insoleData = {
     ],
   },
   Stability: {
+    id: 'insole-stability',
     name: 'STABILITY Insole',
     image: require('../../assets/images/banner3.jpeg'), // Add appropriate image path
     price: 44.99,
+    newPrice: 44.99,
     features: [
       'Firm support for flat feet and overpronation',
       'Designed to ease chronic heel, knee, or back pain',
@@ -65,10 +71,11 @@ const InsoleRecommendation = () => {
 
   // Get the recommended insole type from navigation params
   const recommendedInsole = route.params.recommendedInsole;
-  
+  const shoeSize = route.params.shoeSize;
+
   // Determine the card order with recommended in center
   const insoleTypes: InsoleType[] = ['Sport', 'Comfort', 'Stability'];
-  
+
   // Reorder types to ensure recommended is in the middle
   const orderedTypes = [...insoleTypes];
   if (recommendedInsole !== insoleTypes[1]) {
@@ -81,13 +88,13 @@ const InsoleRecommendation = () => {
   const CARD_WIDTH = width * 0.8;
   const SPACING = width * 0.03;
   const VISIBLE_PEEK = width * 0.15;
-  
+
   useEffect(() => {
     // Scroll to the middle card (recommended) on initial render
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({
         x: (CARD_WIDTH + SPACING) * 1,
-        animated: false
+        animated: false,
       });
     }, 100);
   }, []);
@@ -95,16 +102,20 @@ const InsoleRecommendation = () => {
   // Function to handle adding insole to cart
   const handleAddToCart = (insoleType: InsoleType) => {
     const insole = insoleData[insoleType];
-    
+
     // Format the insole data as expected by the cart context
     const product = {
       id: `insole-${insoleType.toLowerCase()}`,
       title: insole.name,
       price: insole.price,
-      image: Image.resolveAssetSource(insole.image).uri,
+      newPrice: "$" + insole.price,
+      selectedImage: Image.resolveAssetSource(insole.image).uri,
       description: insole.features.join(' | '),
+      selectedSize: shoeSize.country + ' ' + shoeSize.size,
+      quantity: 1,
+      priceValue: insole.price,
     };
-    
+
     // Add to cart and navigate
     addToCart(product);
     navigation.navigate('Cart');
@@ -139,12 +150,12 @@ const InsoleRecommendation = () => {
           contentContainerStyle={styles.carouselContainer}
           style={styles.carousel}
         >
-          {orderedTypes.map((type, index) => {
+          {orderedTypes.map((type) => {
             const isRecommended = type === recommendedInsole;
             const insole = insoleData[type];
-            
+
             return (
-              <View 
+              <View
                 key={type}
                 style={[
                   styles.card,
@@ -167,11 +178,11 @@ const InsoleRecommendation = () => {
                     </View>
                   ))}
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.buyButton}
                   onPress={() => handleAddToCart(type)}
                 >
-                  <Text style={styles.buttonText}>Add to Cart</Text>    
+                  <Text style={styles.buttonText}>Add to Cart</Text>
                 </TouchableOpacity>
               </View>
             );

@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image, ScrollView, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image, ScrollView, Animated, Platform, Button, Modal, ActivityIndicator } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { useNavigation } from '@react-navigation/native';
 import { accelerometer, SensorTypes, setUpdateIntervalForType } from 'react-native-sensors';
 import { Subscription } from 'rxjs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import axios from 'axios';
+import { WebView } from 'react-native-webview';
+import storage from '@react-native-firebase/storage';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
 
 // Define the types for our foot images
@@ -31,11 +35,88 @@ const FootScanScreen = () => {
     const [currentFoot, setCurrentFoot] = useState<'left' | 'right'>('left');
     const [currentView, setCurrentView] = useState<'left' | 'right' | 'front'>('left');
     const [isOrientationCorrect, setIsOrientationCorrect] = useState(false);
+    const [isDetectingSheet, setIsDetectingSheet] = useState(false);
     const navigation = useNavigation();
     const { hasPermission, requestPermission } = useCameraPermission();
     const device = useCameraDevice('back');
     const camera = useRef<Camera>(null);
     const { width, height } = Dimensions.get('window');
+
+
+    // volumental webview page
+    const [showWebView, setShowWebView] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleMessage = async (event: any) => {
+        const data = JSON.parse(event.nativeEvent.data);
+        console.log('Volumental Event:', data);
+
+        if (data.event === 'OnMeasurement') {
+            try {
+                // Get access token
+                const tokenResponse = await axios.post(
+                    'https://login.volumental.com/oauth/token',
+                    {
+                        grant_type: 'client_credentials',
+                        client_id: 'm2IiZHYiVDap31YxnSFbEMoB7MHoCTdW',
+                        client_secret: 'ZpoCZLIPFCFOKZh4wJmw6-xddJ1uzwVUoHf5eMjFMEPp5Kvh7G7QgLZEma0DzLiF',
+                        audience: 'https://stage-gateway.volumental.com'
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
+                    }
+                );
+
+                const accessToken = tokenResponse.data.access_token;
+
+                // Fetch scan data using the scan ID
+                const scanResponse = await axios.get(
+                    `https://widget.volumental.com/api/v1/scans/${data.data.id}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    }
+                );
+
+                const scanData = scanResponse.data;
+                const user = auth().currentUser;
+
+                if (!user) {
+                    throw new Error('User not authenticated');
+                }
+
+                // Store measurements in Firestore
+                await firestore()
+                    .collection('users')
+                    .doc(user.uid)
+                    .collection('measurements')
+                    .doc(data.data.id)
+                    .set({
+                        scanId: data.data.id,
+                        createdAt: scanData.created_at,
+                        measurements: scanData.measurements,
+                        meshes: scanData.meshes,
+                        scanType: scanData.scan_type,
+                        success: scanData.success,
+                        storedAt: firestore.FieldValue.serverTimestamp(),
+                    });
+
+                console.log('Measurements stored successfully');
+            } catch (error) {
+                console.error('Error fetching/storing measurements:', error);
+                Alert.alert('Error', 'Failed to store measurements. Please try again.');
+            }
+        }
+
+        if (data.event === 'OnModalClosed') {
+            setShowWebView(false); // Close the WebView
+            // @ts-ignore - Navigation type issue
+            navigation.navigate('InsoleQuestions');
+        }
+    };
 
 
     const radToDeg = (rad: number) => {
@@ -59,28 +140,28 @@ const FootScanScreen = () => {
             uri: Platform.OS === 'android' ? 'file://' + photoUri : photoUri,
             type: 'image/jpeg',
             name: 'photo.jpg',
-          });
-      
+        });
+
         try {
-          const response = await axios.post('http://192.168.83.30:5000/detect-sheet', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-      
-          if (response.data.a4_detected) {
-            console.log('A4 Sheet Detected ✅');
-            return true;
-            // Proceed with saving image
-          } else {
-            Alert.alert('No A4 Sheet detected', 'Please retake the picture');
-            return false;
-          }
+            const response = await axios.post('http://192.168.137.6:5000/detect-sheet', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.data.a4_detected) {
+                console.log('A4 Sheet Detected ✅');
+                return true;
+                // Proceed with saving image
+            } else {
+                Alert.alert('No A4 Sheet detected', 'Please retake the picture');
+                return false;
+            }
         } catch (error) {
-          console.error(error); 
-          Alert.alert('Error', 'Something went wrong while detecting');
+            console.error(error);
+            Alert.alert('Error', 'Something went wrong while detecting');
         }
-      }
+    }
 
 
     const checkOrientation = (x: number, y: number, z: number): boolean => {
@@ -162,6 +243,7 @@ const FootScanScreen = () => {
     const handleCapture = async () => {
         if (camera.current) {
             try {
+                setIsDetectingSheet(true);
                 console.log('Attempting to take photo...');
                 const photo = await camera.current.takePhoto({
                     flash: 'off',
@@ -171,16 +253,18 @@ const FootScanScreen = () => {
                 const a4Detected = await sendImageForDetection(photo.path);
                 if (!a4Detected) {
                     Alert.alert('No A4 Sheet Detected', 'Please place your foot on an A4 sheet and try again.');
-                    return; 
+                    setIsDetectingSheet(false);
+                    return;
                 }
-    
-                setCurrentImage(photo.path);
 
+                setCurrentImage(photo.path);
                 setShowPreview(true);
                 Alert.alert('Success', 'Image captured successfully!');
             } catch (error) {
                 console.error('Error taking photo:', error);
                 Alert.alert('Error', 'Failed to capture image. Please try again.');
+            } finally {
+                setIsDetectingSheet(false);
             }
         } else {
             console.error('Camera reference is null');
@@ -199,7 +283,7 @@ const FootScanScreen = () => {
             const newImage: FootImage = {
                 path: currentImage,
                 type: currentView,
-                foot: currentFoot
+                foot: currentFoot,
             };
             setCapturedImages((prev) => [...prev, newImage]);
         }
@@ -235,10 +319,67 @@ const FootScanScreen = () => {
         setCurrentView('left');
     };
 
-    const handleContinue = () => {
-        // Here you would navigate to the next screen or process the images
-        Alert.alert('Success', 'All images have been saved!');
-        navigation.goBack();
+    const handleContinue = async () => {
+        try {
+            setIsUploading(true);
+            const user = auth().currentUser;
+
+            if (!user) {
+                Alert.alert('Error', 'User not authenticated');
+                return;
+            }
+
+            const userId = user.uid;
+            const timestamp = new Date().getTime();
+            const uploadedImages = [];
+
+            // Upload each image to Firebase Storage
+            for (const image of capturedImages) {
+                try {
+                    // Create a unique filename for each image
+                    const filename = `${userId}/${timestamp}_${image.foot}_${image.type}.jpg`;
+                    const reference = storage().ref(filename);
+
+                    // Upload the image
+                    await reference.putFile(image.path);
+
+                    // Get the download URL
+                    const url = await reference.getDownloadURL();
+
+                    // Add to our array of uploaded images
+                    uploadedImages.push({
+                        foot: image.foot,
+                        type: image.type,
+                        url: url,
+                        timestamp: timestamp,
+                    });
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    throw new Error(`Failed to upload ${image.foot} foot ${image.type} view`);
+                }
+            }
+
+            // Store the URLs in Firestore
+            await firestore()
+                .collection('users')
+                .doc(userId)
+                .collection('scanned_images')
+                .doc(timestamp.toString())
+                .set({
+                    images: uploadedImages,
+                    createdAt: firestore.FieldValue.serverTimestamp(),
+                    status: 'completed',
+                });
+
+            Alert.alert('Success', 'All images have been uploaded successfully!');
+            // navigation.navigate('InsoleQuestions');
+            setShowWebView(true);
+        } catch (error) {
+            console.error('Error in handleContinue:', error);
+            Alert.alert('Error', 'Failed to upload images. Please try again.');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     // Calculate the rotation angle for the movable rectangle
@@ -255,7 +396,7 @@ const FootScanScreen = () => {
         let dy = 0;
         const SENSITIVITY_X = 40;
         const SENSITIVITY_Y = 40;
- 
+
         // When aligned, ensure perfect overlap
         if (isAligned) {
             // Calculate the exact position to match the target rectangle
@@ -367,7 +508,7 @@ const FootScanScreen = () => {
                         <TouchableOpacity
                             style={[styles.saveButton]}
                             onPress={handleSave}
-                            // disabled={!isOrientationCorrect}
+                        // disabled={!isOrientationCorrect}
                         >
                             <Text style={styles.buttonText}>Save</Text>
                         </TouchableOpacity>
@@ -393,11 +534,16 @@ const FootScanScreen = () => {
                     </View>
                 </View>
                 <TouchableOpacity
-                    style={[styles.captureButton, !isOrientationCorrect && styles.disabledButton]}
+                    style={[
+                        styles.captureButton,
+                        (!isOrientationCorrect || isDetectingSheet) && styles.disabledButton
+                    ]}
                     onPress={handleCapture}
-                    disabled={!isOrientationCorrect}
+                    disabled={!isOrientationCorrect || isDetectingSheet}
                 >
-                    <Text style={styles.captureText}>Capture</Text>
+                    <Text style={styles.captureText}>
+                        {isDetectingSheet ? 'Detecting...' : 'Capture'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         );
@@ -405,55 +551,55 @@ const FootScanScreen = () => {
 
     const renderProgress = () => {
         return (
-           <SafeAreaProvider>
-             <View style={styles.progressContainer}>
-                <Text style={styles.progressTitle}>Capture Progress:</Text>
-                <View style={styles.progressGrid}>
-                    <View style={styles.progressColumn}>
-                        <Text style={styles.footLabel}>Left Foot</Text>
-                        <View style={[
-                            styles.progressItem,
-                            capturedImages.some(img => img.foot === 'left' && img.type === 'left') ? styles.completed : {}
-                        ]}>
-                            <Text style={styles.progressText}>Left View</Text>
+            <SafeAreaProvider>
+                <View style={styles.progressContainer}>
+                    <Text style={styles.progressTitle}>Capture Progress:</Text>
+                    <View style={styles.progressGrid}>
+                        <View style={styles.progressColumn}>
+                            <Text style={styles.footLabel}>Left Foot</Text>
+                            <View style={[
+                                styles.progressItem,
+                                capturedImages.some(img => img.foot === 'left' && img.type === 'left') ? styles.completed : {}
+                            ]}>
+                                <Text style={styles.progressText}>Left View</Text>
+                            </View>
+                            <View style={[
+                                styles.progressItem,
+                                capturedImages.some(img => img.foot === 'left' && img.type === 'right') ? styles.completed : {}
+                            ]}>
+                                <Text style={styles.progressText}>Right View</Text>
+                            </View>
+                            <View style={[
+                                styles.progressItem,
+                                capturedImages.some(img => img.foot === 'left' && img.type === 'front') ? styles.completed : {}
+                            ]}>
+                                <Text style={styles.progressText}>Front View</Text>
+                            </View>
                         </View>
-                        <View style={[
-                            styles.progressItem,
-                            capturedImages.some(img => img.foot === 'left' && img.type === 'right') ? styles.completed : {}
-                        ]}>
-                            <Text style={styles.progressText}>Right View</Text>
-                        </View>
-                        <View style={[
-                            styles.progressItem,
-                            capturedImages.some(img => img.foot === 'left' && img.type === 'front') ? styles.completed : {}
-                        ]}>
-                            <Text style={styles.progressText}>Front View</Text>
-                        </View>
-                    </View>
-                    <View style={styles.progressColumn}>
-                        <Text style={styles.footLabel}>Right Foot</Text>
-                        <View style={[
-                            styles.progressItem,
-                            capturedImages.some(img => img.foot === 'right' && img.type === 'left') ? styles.completed : {}
-                        ]}>
-                            <Text style={styles.progressText}>Left View</Text>
-                        </View>
-                        <View style={[
-                            styles.progressItem,
-                            capturedImages.some(img => img.foot === 'right' && img.type === 'right') ? styles.completed : {}
-                        ]}>
-                            <Text style={styles.progressText}>Right View</Text>
-                        </View>
-                        <View style={[
-                            styles.progressItem,
-                            capturedImages.some(img => img.foot === 'right' && img.type === 'front') ? styles.completed : {}
-                        ]}>
-                            <Text style={styles.progressText}>Front View</Text>
+                        <View style={styles.progressColumn}>
+                            <Text style={styles.footLabel}>Right Foot</Text>
+                            <View style={[
+                                styles.progressItem,
+                                capturedImages.some(img => img.foot === 'right' && img.type === 'left') ? styles.completed : {}
+                            ]}>
+                                <Text style={styles.progressText}>Left View</Text>
+                            </View>
+                            <View style={[
+                                styles.progressItem,
+                                capturedImages.some(img => img.foot === 'right' && img.type === 'right') ? styles.completed : {}
+                            ]}>
+                                <Text style={styles.progressText}>Right View</Text>
+                            </View>
+                            <View style={[
+                                styles.progressItem,
+                                capturedImages.some(img => img.foot === 'right' && img.type === 'front') ? styles.completed : {}
+                            ]}>
+                                <Text style={styles.progressText}>Front View</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
-            </View>
-           </SafeAreaProvider>
+            </SafeAreaProvider>
         );
     };
 
@@ -496,12 +642,43 @@ const FootScanScreen = () => {
                     </View>
                 </ScrollView>
                 <View style={styles.summaryButtons}>
-                    <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
+                    <TouchableOpacity
+                        style={styles.restartButton}
+                        onPress={handleRestart}
+                        disabled={isUploading}
+                    >
                         <Text style={styles.buttonText}>Restart</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                        <Text style={styles.buttonText}>Continue</Text>
+                    <TouchableOpacity
+                        style={[
+                            styles.continueButton,
+                            isUploading && styles.disabledButton
+                        ]}
+                        onPress={handleContinue}
+                        disabled={isUploading}
+                    >
+                        {isUploading ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator color="white" />
+                                <Text style={[styles.buttonText, styles.loadingText]}>Uploading...</Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.buttonText}>Continue</Text>
+                        )}
                     </TouchableOpacity>
+
+                    <Modal visible={showWebView} animationType="slide">
+                        <WebView
+                            source={{ uri: 'file:///android_asset/volumental.html' }}
+                            originWhitelist={['*']}
+                            style={{ flex: 1 }}
+                            onMessage={handleMessage}
+                            javaScriptEnabled={true}
+                            allowsInlineMediaPlayback={true}
+                            mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
+                        />
+                        <Button title="Close" onPress={() => setShowWebView(false)} />
+                    </Modal>
                 </View>
             </View>
         );
@@ -545,9 +722,11 @@ const FootScanScreen = () => {
             <TouchableOpacity
                 style={styles.nextButton}
                 onPress={() => navigation.goBack()}
-                >
+            >
                 <Text style={styles.nextText}>Cancel</Text>
             </TouchableOpacity>
+
+
         </View>
     );
 };
@@ -862,6 +1041,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         textAlign: 'center',
+    },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loadingText: {
+        marginLeft: 10,
     },
 });
 

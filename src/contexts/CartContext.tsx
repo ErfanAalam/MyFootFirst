@@ -97,7 +97,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           title: product.title,
           price: product.price,
           newPrice: product.newPrice,
-          selectedImage: product.selectedImage,
           image: product.selectedImage,
           size: product.selectedSize,
           quantity: quantity,

@@ -156,7 +156,7 @@ const ProductDetailScreen = () => {
 
   const handleAddToCart = () => {
     // Create a modified product with the selected color and image
-    console.log(product);
+    // console.log(product);
     const productToAdd = {
       ...product,
       selectedColor,
@@ -200,7 +200,9 @@ const ProductDetailScreen = () => {
             style={styles.cartIcon}
           />
         </TouchableOpacity>
-        <Text style={styles.cartCounter}>{items.length}</Text>
+        {items.length > 0 && (
+          <Text style={styles.cartCounter}>{items.length}</Text>
+        )}
       </View>
 
       <ScrollView>
@@ -334,17 +336,20 @@ const styles = StyleSheet.create({
     height: 24,
   },
   cartCounter: {
-    color: '#000',
-    fontSize: 16,
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '600',
     position: 'absolute',
+    backgroundColor: '#00843D',
     right: 10,
     top: 10,
     borderWidth: 1,
     borderColor: '#000',
-    borderRadius: 10,
-    paddingHorizontal: 2,
-    paddingVertical: 2,
+    borderRadius: 100,
+    height: 20,
+    width: 20,
+    textAlign: 'center',
+    padding: 2,
   },
   imageHeader: {
     height: 400,
