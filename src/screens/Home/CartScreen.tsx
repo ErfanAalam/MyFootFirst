@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,11 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
-  Alert,
   Modal,
   TextInput,
   ScrollView,
   KeyboardAvoidingView,
+  ListRenderItem,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
@@ -23,6 +23,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useUser } from '../../contexts/UserContext';
 import firestore from '@react-native-firebase/firestore';
 import { NavigationProp } from '@react-navigation/native';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 // Add type for navigation
 type RootStackParamList = {
@@ -36,20 +37,38 @@ type NavigationProps = NavigationProp<RootStackParamList>;
 interface UserData {
   id: string;
   name?: string;
+  firstName?: string;
   phone?: string;
   country?: string;
 }
 
+// Add CartItem interface
+interface CartItem {
+  id: string;
+  title: string;
+  price: number;
+  priceValue: number;
+  newPrice: string;
+  quantity: number;
+  image: string;
+  selectedImage?: string;
+  color:string,
+}
+
 const CartScreen = () => {
-  const { items, updateQuantity, removeFromCart, getCartTotal } = useCart();
+  const { items, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
   const { userData } = useUser() as { userData: UserData };
   const navigation = useNavigation<NavigationProps>();
+  // console.log(items)
 
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
   const [addressLoading, setAddressLoading] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
+
+  // Create a ref to track if order has been processed already
+  const orderProcessedRef = useRef(false);
 
   // Address state
   const [address, setAddress] = useState({
@@ -64,6 +83,13 @@ const CartScreen = () => {
   // State to track if address is selected
   const [addressSelected, setAddressSelected] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<typeof address | null>(null);
+
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
 
   // Use useCallback to prevent recreation of the function on every render
   const fetchUserAddress = useCallback(async () => {
@@ -89,13 +115,29 @@ const CartScreen = () => {
     if (userData?.id) {
       fetchUserAddress();
     }
+
+    // Reset order processed ref when component mounts
+    orderProcessedRef.current = false;
   }, [userData, fetchUserAddress]);
 
-  // Handle address save
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
+
+  // Update handleSaveAddress
   const handleSaveAddress = async () => {
     // Basic validation
     if (!address.line1 || !address.city || !address.country || !address.pinCode || !address.phoneNumber) {
-      Alert.alert('Error', 'Please fill all required fields');
+      showAlert('Error', 'Please fill all required fields', 'error');
       return;
     }
 
@@ -112,19 +154,20 @@ const CartScreen = () => {
       setSelectedAddress({ ...address });
       setAddressSelected(true);
       setAddressModalVisible(false);
-      Alert.alert('Success', 'Address saved successfully');
-    } catch (error) {
+      showAlert('Success', 'Address saved successfully', 'success');
+    } catch (error: any) {
       console.error('Error saving address:', error);
-      Alert.alert('Error', 'Failed to save address: ' + error.message);
+      showAlert('Error', `Failed to save address: ${error.message}`, 'error');
     } finally {
       setAddressLoading(false);
     }
   };
 
+  // Update handlePay
   const handlePay = async () => {
     // Check if address is selected
     if (!addressSelected) {
-      Alert.alert('Address Required', 'Please select a delivery address before checkout');
+      showAlert('Address Required', 'Please select a delivery address before checkout', 'error');
       return;
     }
 
@@ -141,51 +184,107 @@ const CartScreen = () => {
         // Include shipping address if needed by your backend
         // address: selectedAddress,
       });
+
+      // Reset order processed flag when starting a new checkout
+      orderProcessedRef.current = false;
+
       setCheckoutUrl(response.request.responseURL);
     } catch (error) {
       console.error('Error creating Stripe session:', error);
-      Alert.alert('Error', 'Failed to initiate checkout');
+      showAlert('Error', 'Failed to initiate checkout', 'error');
     } finally {
       setLoading(false);
     }
   };
+  console.log(items)
 
-  // Add this new function to store order data
-  const storeOrderData = async () => {
-    if (!userData?.id || isOrderProcessing) return;
+  // Improved order storage function
+  const storeOrderData = useCallback(async () => {
+    if (!userData?.id || isOrderProcessing) return false;
 
     setIsOrderProcessing(true);
     try {
       const uniqueKey = 'QWERTYUIOPASDFGHJKLZXCVBNM1234567890';
       const orderId = uniqueKey.split('').sort(() => Math.random() - 0.5).join('').slice(0, 8);
 
-      const orderData = {
-        orderId,
-        customerName: userData.firstName || 'Anonymous',
-        dateOfOrder: firestore.FieldValue.serverTimestamp(),
-        products: items.map(item => ({
-          id: item.id,
-          title: item.title,
-          price: item.price,
-          priceWithSymbol:item.newPrice,
-          quantity: item.quantity,
-          image: item.image,
-          totalPrice: item.price * item.quantity
-        })),
-        totalAmount: getCartTotal(),
-        orderStatus: 'pending',
-        shippingAddress: selectedAddress
-      };
+      // Separate insole products from other products
+      const insoleProducts = items.filter(item =>
+        ['insole-stability', 'insole-comfort', 'insole-sport'].includes(item.id)
+      );
+      const otherProducts = items.filter(item =>
+        ['insole-stability', 'insole-comfort', 'insole-sport'].includes(item.id)
+      );
 
-      await firestore()
-        .collection('usersOrders')
-        .doc(userData.id)
-        .collection('orders')
-        .doc(orderId)
-        .set(orderData);
+      // Store insole products in users collection
+      if (insoleProducts.length > 0) {
+        const insoleOrderData = {
+          orderId: userData.id, // Use userId as orderId for insoles
+          customerName: userData.firstName || 'Anonymous',
+          dateOfOrder: Date.now(),
+          products: insoleProducts.map(item => ({
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            priceWithSymbol: item.newPrice,
+            quantity: item.quantity,
+            image: item.image,
+            totalPrice: item.price * item.quantity,
+          })),
+          totalAmount: insoleProducts.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+          orderStatus: 'pending',
+          shippingAddress: selectedAddress,
+        };
+
+        // Get existing insole orders
+        const userDoc = await firestore()
+          .collection('users')
+          .doc(userData.id)
+          .get();
+
+        const existingData = userDoc.data();
+        const existingInsoleOrders = existingData?.insoleOrders || [];
+
+        // Add new order to the array
+        const updatedInsoleOrders = [...existingInsoleOrders, insoleOrderData];
+
+        // Update the document with the new array
+        await firestore()
+          .collection('users')
+          .doc(userData.id)
+          .set({ insoleOrders: updatedInsoleOrders }, { merge: true });
+      }
+
+      // Store other products in usersOrders collection
+      if (otherProducts.length > 0) {
+        const otherOrderData = {
+          orderId,
+          customerName: userData.firstName || 'Anonymous',
+          dateOfOrder: firestore.FieldValue.serverTimestamp(),
+          products: otherProducts.map(item => ({
+            id: item.id,
+            title: item.title,
+            color:item.color,
+            price: item.price,
+            priceWithSymbol: item.newPrice,
+            quantity: item.quantity,
+            image: item.image,
+            totalPrice: item.price * item.quantity,
+          })),
+          totalAmount: otherProducts.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+          orderStatus: 'pending',
+          shippingAddress: selectedAddress,
+        };
+
+        await firestore()
+          .collection('usersOrders')
+          .doc(userData.id)
+          .collection('orders')
+          .doc(orderId)
+          .set(otherOrderData);
+      }
 
       // Clear the cart after successful order
-      items.forEach(item => removeFromCart(item.id));
+      clearCart();
 
       return true;
     } catch (error) {
@@ -194,33 +293,30 @@ const CartScreen = () => {
     } finally {
       setIsOrderProcessing(false);
     }
-  };
+  }, [userData, items, selectedAddress, clearCart, isOrderProcessing]);
 
-  // Modify the WebView success handler
-  if (checkoutUrl) {
-    return (
-      <View style={{ flex: 1, marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight }}>
-        <WebView
-          source={{ uri: checkoutUrl }}
-          onNavigationStateChange={async (navState) => {
-            if (!isOrderProcessing && navState.url.includes('?success=true')) {
-              const orderStored = await storeOrderData();
-              if (orderStored) {
-                Alert.alert('Success', 'Payment successful and order placed!');
-                navigation.navigate('OrderHistory');
-                setCheckoutUrl('');
-              } else {
-                Alert.alert('Error', 'Payment successful but failed to store order. Please contact support.');
-              }
-            } else if (navState.url.includes('?canceled=true')) {
-              Alert.alert('Payment canceled.');
-              setCheckoutUrl('');
-            }
-          }}
-        />
-      </View>
-    );
-  }
+  // Update handleNavigationStateChange
+  const handleNavigationStateChange = useCallback(async (navState: { url: string }) => {
+    if ((navState.url.includes('/success') || navState.url.includes('?success=true')) && !orderProcessedRef.current) {
+      orderProcessedRef.current = true;
+
+      const orderStored = await storeOrderData();
+
+      if (orderStored) {
+        setCheckoutUrl('');
+        showAlert('Success', 'Payment successful and order placed!', 'success');
+        // setTimeout(() => {
+        //   navigation.navigate('OrderHistory');
+        // }, 300);
+      } else {
+        showAlert('Error', 'Payment successful but failed to store order. Please contact support.', 'error');
+        setCheckoutUrl('');
+      }
+    } else if (navState.url.includes('/cancel') || navState.url.includes('?canceled=true')) {
+      showAlert('Payment Canceled', 'Your payment was canceled.', 'info');
+      setCheckoutUrl('');
+    }
+  }, [navigation, storeOrderData]);
 
   const handleIncreaseQuantity = (productId: string) => {
     const item = items.find(item => item.id === productId);
@@ -238,11 +334,11 @@ const CartScreen = () => {
     }
   };
 
-  const renderCartItem = ({ item }) => {
+  const renderCartItem: ListRenderItem<CartItem> = ({ item }) => {
     return (
       <View style={styles.cartItemContainer}>
         <Image
-          source={{ uri: item.image }}
+          source={{ uri: item.image || item.selectedImage }}
           style={styles.productImage}
           resizeMode="cover"
         />
@@ -321,6 +417,18 @@ const CartScreen = () => {
     }));
   };
 
+  // Handle WebView rendering
+  if (checkoutUrl) {
+    return (
+      <SafeAreaView style={{ flex: 1, marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight }}>
+        <WebView
+          source={{ uri: checkoutUrl }}
+          onNavigationStateChange={handleNavigationStateChange}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -339,7 +447,7 @@ const CartScreen = () => {
 
       {items.length > 0 ? (
         <View style={styles.cartList}>
-          <FlatList
+          <FlatList<CartItem>
             data={items}
             renderItem={renderCartItem}
             keyExtractor={item => item.id}
@@ -380,10 +488,18 @@ const CartScreen = () => {
           >
             <Text style={styles.shopNowButtonText}>Shop Now</Text>
           </TouchableOpacity>
+          <Text style={{padding:10,fontSize:20}}>OR</Text>
+          <Text style={styles.emptyCartText}>Go to Order History</Text>
+          <TouchableOpacity
+            style={styles.shopNowButton}
+            onPress={() => navigation.navigate('OrderHistory')}
+          >
+            <Text style={styles.shopNowButtonText}>Order History</Text>
+          </TouchableOpacity>
         </View>
       )}
 
-      {/* Fix the modal by moving it outside the main render flow and using a direct component, not a functional component that creates closures */}
+      {/* Modal for address input */}
       <Modal
         visible={addressModalVisible}
         animationType="slide"
@@ -472,6 +588,15 @@ const CartScreen = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Add CustomAlertModal at the end of the component */}
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };

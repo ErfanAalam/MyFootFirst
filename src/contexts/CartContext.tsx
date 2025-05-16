@@ -13,6 +13,7 @@ export interface CartItem {
   priceValue: number;
   image?: string;
   size?: string;
+  color?:string,
 }
 
 // Define context type
@@ -78,6 +79,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Add product to cart
   const addToCart = async (product: any, quantity: number = 1) => {
     if (!userData?.id) return;
+    console.log(product);
 
     try {
       const userDoc = firestore().collection('users').doc(userData.id);
@@ -100,6 +102,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           image: product.selectedImage,
           size: product.selectedSize,
           quantity: quantity,
+          color:product.selectedColor,
           priceValue: product.priceValue,
         };
 

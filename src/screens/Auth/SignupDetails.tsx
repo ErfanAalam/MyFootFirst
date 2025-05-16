@@ -9,12 +9,12 @@ import {
   ScrollView,
   Platform,
   Keyboard,
-  Alert,
   Modal,
 } from 'react-native';
 import CountryPicker from 'react-native-country-picker-modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 const SignupDetails = () => {
   const navigation = useNavigation();
@@ -40,49 +40,64 @@ const SignupDetails = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
+
   const onSelectCountry = (country: any) => {
     setCountryCode(country.cca2);
     setCallingCode(country.callingCode[0]);
     setCountry(country.name);
   };
 
-  const validateForm = () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
 
-    if (!firstName || !surname || !email || !password || !dob || !gender) {
-      Alert.alert("Validation Error", "All required fields must be filled.");
-      return false;
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
+
+  const validateAndProceed = () => {
+    // Check if all required fields are filled
+    if (!firstName || !surname || !email || !password || !confirmPassword || !gender || !dob) {
+      showAlert('Validation Error', 'All required fields must be filled.', 'error');
+      return;
     }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
-      return false;
+      showAlert('Invalid Email', 'Please enter a valid email address.', 'error');
+      return;
     }
+
+    // Validate password length
     if (password.length < 6) {
-      Alert.alert("Weak Password", "Password must be at least 6 characters.");
-      return false;
+      showAlert('Weak Password', 'Password must be at least 6 characters.', 'error');
+      return;
     }
+
+    // Check if passwords match
     if (password !== confirmPassword) {
-      Alert.alert("Password Mismatch", "Password and Confirm Password must match.");
-      return false;
+      showAlert('Password Mismatch', 'Password and Confirm Password must match.', 'error');
+      return;
     }
-    return true;
+
+    // If all validations pass, proceed with signup
+    handleSignup();
   };
 
   const handleSubmit = () => {
-    if (!validateForm()) return;
-    // Navigate to next screen or submit data
-    navigation.navigate("Goals",{
-        firstName,
-        surname,
-        email,
-        password,
-        confirmPassword,
-        country,
-        countryCode,
-        phone,
-        callingCode,
-        gender,
-        dob})
+    validateAndProceed();
   };
 
   // Modern approach for date picking
@@ -237,6 +252,23 @@ const SignupDetails = () => {
     setShowGenderDropdown(false);
   };
 
+  const handleSignup = () => {
+    // Navigate to next screen or submit data
+    navigation.navigate("Goals", {
+      firstName,
+      surname,
+      email,
+      password,
+      confirmPassword,
+      country,
+      countryCode,
+      phone,
+      callingCode,
+      gender,
+      dob
+    })
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -286,8 +318,8 @@ const SignupDetails = () => {
         />
 
         {/* Gender Dropdown */}
-        <TouchableOpacity 
-          style={styles.input} 
+        <TouchableOpacity
+          style={styles.input}
           onPress={() => setShowGenderDropdown(true)}
         >
           <Text style={gender ? styles.inputText : styles.placeholderText}>
@@ -302,32 +334,32 @@ const SignupDetails = () => {
           animationType="slide"
           onRequestClose={() => setShowGenderDropdown(false)}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.modalOverlay}
             activeOpacity={1}
             onPress={() => setShowGenderDropdown(false)}
           >
             <View style={styles.dropdownContainer}>
               <Text style={styles.dropdownTitle}>Select Gender</Text>
-              <TouchableOpacity 
-                style={styles.dropdownOption} 
+              <TouchableOpacity
+                style={styles.dropdownOption}
                 onPress={() => handleGenderSelect('male')}
               >
                 <Text style={styles.dropdownOptionText}>Male</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.dropdownOption} 
+              <TouchableOpacity
+                style={styles.dropdownOption}
                 onPress={() => handleGenderSelect('female')}
               >
                 <Text style={styles.dropdownOptionText}>Female</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.dropdownOption} 
+              <TouchableOpacity
+                style={styles.dropdownOption}
                 onPress={() => handleGenderSelect('other')}
               >
                 <Text style={styles.dropdownOptionText}>Other</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.dropdownCancelButton}
                 onPress={() => setShowGenderDropdown(false)}
               >
@@ -402,6 +434,13 @@ const SignupDetails = () => {
           <Text style={styles.submitButtonText}>Continue</Text>
         </TouchableOpacity>
       </ScrollView>
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };
@@ -430,7 +469,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   countryRow: {
-      borderWidth: 1,
+    borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
     paddingVertical: 10,

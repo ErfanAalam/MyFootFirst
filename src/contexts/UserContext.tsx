@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { getFirestore, doc, getDoc, updateDoc } from '@react-native-firebase/firestore';
 import {getAuth, FirebaseAuthTypes } from '@react-native-firebase/auth';
 
+
 interface UserData {
   id: string;
   firstName: string;

@@ -156,7 +156,7 @@ const ProductDetailScreen = () => {
 
   const handleAddToCart = () => {
     // Create a modified product with the selected color and image
-    // console.log(product);
+    console.log(selectedColor);
     const productToAdd = {
       ...product,
       selectedColor,

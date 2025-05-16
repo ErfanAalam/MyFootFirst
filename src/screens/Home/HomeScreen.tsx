@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar as RNStatusBar,
-  Button,
-  Modal,
 } from 'react-native';
 // import { WebView } from 'react-native-webview';
 import { Card } from 'react-native-paper';
@@ -67,22 +65,6 @@ const HomeScreen = () => {
     },
   ]);
 
-  // const [showWebView, setShowWebView] = useState(false);
-
-  // const handleMessage = (event: any) => {
-  //   const data = JSON.parse(event.nativeEvent.data);
-  //   console.log('Volumental Event:', data);
-
-  //   if (data.event === 'OnMeasurement') {
-  //     // You can store the scanned ID or navigate, etc.
-  //     console.log('Scan ID:', data.data.id);
-  //   }
-
-  //   if (data.event === 'OnModalClosed') {
-  //     setShowWebView(false); // Close the WebView
-  //     navigation.navigate("InsoleQuestions")
-  //   }
-  // };
 
   const handlePainPointSelection = (pointId: string) => {
     setPainPoints((prev) =>
@@ -145,23 +127,9 @@ const HomeScreen = () => {
             <TouchableOpacity
               style={styles.nextButton}
               onPress={() => navigation.navigate("FootScanScreen")}
-            // onPress={() => setShowWebView(true)}
             >
               <Text style={styles.buttonText}>Scan Your Foot</Text>
             </TouchableOpacity>
-
-            {/* <Modal visible={showWebView} animationType="slide">
-              <WebView
-                source={{ uri: 'file:///android_asset/volumental.html' }}
-                originWhitelist={['*']}
-                style={{ flex: 1 }}
-                onMessage={handleMessage}
-                javaScriptEnabled={true}
-                allowsInlineMediaPlayback={true}
-                mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
-              />
-              <Button title="Close" onPress={() => setShowWebView(false)} />
-            </Modal> */}
           </View>
         </View>
 
@@ -186,6 +154,7 @@ const HomeScreen = () => {
 
           <TouchableOpacity
             style={styles.showAllButton}
+            // onPress={() => navigation.navigate("Ecommerce")}
             onPress={() => navigation.navigate("InsoleQuestions")}
           >
             <Text style={styles.showAllButtonText}>Show All</Text>

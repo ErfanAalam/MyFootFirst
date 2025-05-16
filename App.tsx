@@ -12,7 +12,7 @@ const App = () => {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: '608411623919-0ggji53i05h7fnkbg5cj9qbo1ctf545m.apps.googleusercontent.com', // Required for Firebase Auth
+      webClientId: '503667392757-496lchn6jf0v7a53hqe0jkkq044b7m16.apps.googleusercontent.com', // Updated to match google-services.json
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });

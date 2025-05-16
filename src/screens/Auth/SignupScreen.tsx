@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,50 +7,99 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
-  Dimensions
+  Dimensions,
+  Platform,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
+import { NavigationProp } from '@react-navigation/native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { getAuth, createUserWithEmailAndPassword } from '@react-native-firebase/auth';
+import { getAuth, GoogleAuthProvider } from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 const { width } = Dimensions.get('window');
 
+// Define navigation types
+type RootStackParamList = {
+  Welcome: undefined;
+  Signup: undefined;
+  SignupDetails: undefined;
+  MainTabs: undefined;
+  Home: undefined;
+};
+
 const SignupScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [loading, setLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
 
-  // useEffect(() => {
-  //   GoogleSignin.configure({
-  //     webClientId: '608411623919-0ggji53i05h7fnkbg5cj9qbo1ctf545m.apps.googleusercontent.com',
-  //   });
-  // })
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
 
-  const onGoogleButtonPress = async () => {
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleGoogleSignIn = async () => {
     try {
-      // Ensure Google Play services are available (especially important on Android)
+      setLoading(true);
+      // Ensure Google Play services are available
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-  
-      // Get the user's ID token
-      const { idToken } = await GoogleSignin.signIn();
-  
-      // Create a Google credential with the token
-      const googleCredential = getAuth().GoogleAuthProvider.credential(idToken);
-  
+
+      // Get the user's tokens
+      await GoogleSignin.signIn();
+      const { accessToken } = await GoogleSignin.getTokens();
+
+      // Create a Google credential with the access token
+      const googleCredential = GoogleAuthProvider.credential(undefined, accessToken);
+
       // Sign-in the user with the credential
       const userCredential = await getAuth().signInWithCredential(googleCredential);
-  
-      // Optional: Check if it's a new user or existing user
-      const isNewUser = userCredential.additionalUserInfo?.isNewUser;
-  
-      // Navigate to SignupDetails (if it's a new user) or somewhere else
-      if (isNewUser) {
+
+      // Check if user exists in Firestore
+      const userDoc = await firestore()
+        .collection('users')
+        .doc(userCredential.user.uid)
+        .get();
+
+        console.log(userDoc);
+
+      if (!userDoc.exists) {
+        // If user doesn't exist in Firestore, they are new
         navigation.navigate('SignupDetails');
+        console.log('in if statement');
       } else {
-        navigation.navigate('Home'); // or whatever your main screen is
+        // If user exists in Firestore, they are existing
+        console.log('in else statement');
+        navigation.navigate('MainTabs');
       }
-    } catch (error) {
-      console.error('Google Sign-In Error:', error);
-      // You can show an alert or toast here for UX
+    } catch (error: any) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        showAlert('Account Exists', 'An account already exists with this email using a different sign-in method.', 'error');
+      } else {
+        showAlert('Sign-In Error', 'Failed to sign in with Google. Please try again.', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (Platform.OS === 'ios') {
+      showAlert('Coming Soon', 'Apple Sign-In will be available soon!', 'info');
+    } else {
+      showAlert('Not Available', 'Apple Sign-In is only available on iOS devices.', 'info');
     }
   };
 
@@ -62,28 +111,43 @@ const SignupScreen = () => {
         </Text>
 
         <TouchableOpacity
-          style={styles.continueButton}
+          style={[styles.continueButton, loading && styles.disabledButton]}
           onPress={() => navigation.navigate('SignupDetails')}
+          disabled={loading}
         >
-          <Text style={styles.continueText}>Continue</Text>
+          <Text style={styles.continueText}>
+            {loading ? 'Please wait...' : 'Continue'}
+          </Text>
         </TouchableOpacity>
 
         <Text style={styles.orText}>OR</Text>
 
-        <TouchableOpacity style={styles.socialButton} onPress={()=>onGoogleButtonPress()}>
+        <TouchableOpacity 
+          style={[styles.socialButton, loading && styles.disabledButton]} 
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+        >
           <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
             style={styles.socialIcon}
           />
-          <Text style={styles.socialButtonText}>Continue with Google</Text>
+          <Text style={styles.socialButtonText}>
+            {loading ? 'Signing in...' : 'Continue with Google'}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.socialButton}>
+        <TouchableOpacity 
+          style={[styles.socialButton, loading && styles.disabledButton]}
+          onPress={handleAppleSignIn}
+          disabled={loading}
+        >
           <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/0/747.png' }}
             style={styles.socialIcon}
           />
-          <Text style={styles.socialButtonText}>Continue with Apple</Text>
+          <Text style={styles.socialButtonText}>
+            {loading ? 'Signing in...' : 'Continue with Apple'}
+          </Text>
         </TouchableOpacity>
 
         <Text style={styles.privacyText}>
@@ -93,6 +157,13 @@ const SignupScreen = () => {
           rights in our <Text style={styles.link}>Privacy Policy</Text>.
         </Text>
       </ScrollView>
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };
@@ -162,6 +233,9 @@ const styles = StyleSheet.create({
   link: {
     color: '#007AFF',
     textDecorationLine: 'underline',
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });
 

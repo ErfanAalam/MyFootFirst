@@ -6,13 +6,15 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
+    Platform,
+    StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconButton } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '../../contexts/UserContext';
-import { getFirestore, getDoc, doc, updateDoc } from '@react-native-firebase/firestore';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 type RootStackParamList = {
     ShoesSize: {
@@ -56,6 +58,12 @@ const ShoesSize = () => {
     const [selectedCountry, setSelectedCountry] = useState<'US' | 'UK' | 'EU'>('US');
     const [sizeIndex, setSizeIndex] = useState(3); // Default to middle size (e.g., US 9 for men, US 8 for women)
     const [loading, setLoading] = useState(false);
+    const [alertModal, setAlertModal] = useState({
+        visible: false,
+        title: '',
+        message: '',
+        type: 'info' as 'success' | 'error' | 'info',
+    });
 
     // Flag emojis instead of images
     const flagEmojis = {
@@ -80,8 +88,20 @@ const ShoesSize = () => {
         }
     };
 
-    // Function to continue to payment
-    const handleContinue = async () => {
+    const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        setAlertModal({
+            visible: true,
+            title,
+            message,
+            type,
+        });
+    };
+
+    const hideAlert = () => {
+        setAlertModal(prev => ({ ...prev, visible: false }));
+    };
+
+    const handleSaveSize = async () => {
         try {
             //   setLoading(true);
 
@@ -103,7 +123,7 @@ const ShoesSize = () => {
 
         } catch (error) {
             console.error('Error saving shoe size:', error);
-            Alert.alert('Error', 'Failed to save your shoe size. Please try again.');
+            showAlert('Error', 'Failed to save your shoe size. Please try again.', 'error');
         } finally {
             setLoading(false);
  
@@ -203,7 +223,7 @@ const ShoesSize = () => {
                 <View style={styles.bottomButtonContainer}>
                     <TouchableOpacity
                         style={[styles.buttonContainer, loading && styles.buttonDisabled]}
-                        onPress={handleContinue}
+                        onPress={handleSaveSize}
                         disabled={loading}
                     >
                         <Text style={styles.buttonText}>
@@ -212,6 +232,13 @@ const ShoesSize = () => {
                     </TouchableOpacity>
                 </View>
             </View>
+            <CustomAlertModal
+                visible={alertModal.visible}
+                title={alertModal.title}
+                message={alertModal.message}
+                type={alertModal.type}
+                onClose={hideAlert}
+            />
         </SafeAreaView>
     );
 };

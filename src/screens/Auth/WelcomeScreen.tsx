@@ -22,12 +22,12 @@ const sideSpacing = (width - bannerWidth) / 2;
 const banners = [
   {
     id: '1',
-    image: require('../../assets/images/banner1.jpg'),
+    image: require('../../assets/images/banner1.png'),
     title: 'Custom Orthotics, No Clinic Needed',
   },
   {
     id: '2',
-    image: require('../../assets/images/banner2.webp'),
+    image: require('../../assets/images/banner2.jpg'),
     title: 'Your Feet, Mapped by AI',
   },
   {

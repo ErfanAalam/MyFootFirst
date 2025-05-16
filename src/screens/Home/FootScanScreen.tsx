@@ -10,6 +10,7 @@ import { WebView } from 'react-native-webview';
 import storage from '@react-native-firebase/storage';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 
 // Define the types for our foot images
@@ -46,6 +47,26 @@ const FootScanScreen = () => {
     // volumental webview page
     const [showWebView, setShowWebView] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+
+    const [alertModal, setAlertModal] = useState({
+        visible: false,
+        title: '',
+        message: '',
+        type: 'info' as 'success' | 'error' | 'info',
+    });
+
+    const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        setAlertModal({
+            visible: true,
+            title,
+            message,
+            type,
+        });
+    };
+
+    const hideAlert = () => {
+        setAlertModal(prev => ({ ...prev, visible: false }));
+    };
 
     const handleMessage = async (event: any) => {
         const data = JSON.parse(event.nativeEvent.data);
@@ -88,26 +109,43 @@ const FootScanScreen = () => {
                     throw new Error('User not authenticated');
                 }
 
-                // Store measurements in Firestore
-                await firestore()
+                // Check if measurements already exist and update instead of creating new
+                const measurementsRef = firestore()
                     .collection('users')
                     .doc(user.uid)
                     .collection('measurements')
-                    .doc(data.data.id)
-                    .set({
-                        scanId: data.data.id,
-                        createdAt: scanData.created_at,
-                        measurements: scanData.measurements,
-                        meshes: scanData.meshes,
-                        scanType: scanData.scan_type,
-                        success: scanData.success,
-                        storedAt: firestore.FieldValue.serverTimestamp(),
-                    });
+                    .doc('latest_measurements');
 
-                console.log('Measurements stored successfully');
+                await measurementsRef.set({
+                    scanId: data.data.id,
+                    createdAt: scanData.created_at,
+                    measurements: scanData.measurements,
+                    meshes: scanData.meshes,
+                    scanType: scanData.scan_type,
+                    success: scanData.success,
+                    storedAt: firestore.FieldValue.serverTimestamp(),
+                }, { merge: true });
+
+                // Store measurements in Firestore
+                // await firestore()
+                //     .collection('users')
+                //     .doc(user.uid)
+                //     .collection('measurements')
+                //     .doc(data.data.id)
+                //     .set({
+                //         scanId: data.data.id,
+                //         createdAt: scanData.created_at,
+                //         measurements: scanData.measurements,
+                //         meshes: scanData.meshes,
+                //         scanType: scanData.scan_type,
+                //         success: scanData.success,
+                //         storedAt: firestore.FieldValue.serverTimestamp(),
+                //     });
+
+                // console.log('Measurements stored successfully');
             } catch (error) {
                 console.error('Error fetching/storing measurements:', error);
-                Alert.alert('Error', 'Failed to store measurements. Please try again.');
+                showAlert('Error', 'Failed to store measurements. Please try again.', 'error');
             }
         }
 
@@ -154,12 +192,12 @@ const FootScanScreen = () => {
                 return true;
                 // Proceed with saving image
             } else {
-                Alert.alert('No A4 Sheet detected', 'Please retake the picture');
+                showAlert('No A4 Sheet detected', 'Please retake the picture', 'error');
                 return false;
             }
         } catch (error) {
             console.error(error);
-            Alert.alert('Error', 'Something went wrong while detecting');
+            showAlert('Error', 'Something went wrong while detecting', 'error');
         }
     }
 
@@ -252,23 +290,23 @@ const FootScanScreen = () => {
                 // Check for A4 sheet in the image
                 const a4Detected = await sendImageForDetection(photo.path);
                 if (!a4Detected) {
-                    Alert.alert('No A4 Sheet Detected', 'Please place your foot on an A4 sheet and try again.');
+                    showAlert('No A4 Sheet Detected', 'Please place your foot on an A4 sheet and try again.', 'error');
                     setIsDetectingSheet(false);
                     return;
                 }
 
                 setCurrentImage(photo.path);
                 setShowPreview(true);
-                Alert.alert('Success', 'Image captured successfully!');
+                showAlert('Success', 'Image captured successfully!', 'success');
             } catch (error) {
                 console.error('Error taking photo:', error);
-                Alert.alert('Error', 'Failed to capture image. Please try again.');
+                showAlert('Error', 'Failed to capture image. Please try again.', 'error');
             } finally {
                 setIsDetectingSheet(false);
             }
         } else {
             console.error('Camera reference is null');
-            Alert.alert('Error', 'Camera not initialized. Please try again.');
+            showAlert('Error', 'Camera not initialized. Please try again.', 'error');
         }
     };
 
@@ -291,7 +329,7 @@ const FootScanScreen = () => {
         if (currentView === 'front') {
             if (currentFoot === 'right') {
                 // We've captured all images
-                Alert.alert('Complete', 'All foot images have been captured!');
+                showAlert('Complete', 'All foot images have been captured!', 'success');
                 setShowPreview(false);
                 setShowSummary(true);
             } else {
@@ -325,7 +363,7 @@ const FootScanScreen = () => {
             const user = auth().currentUser;
 
             if (!user) {
-                Alert.alert('Error', 'User not authenticated');
+                showAlert('Error', 'User not authenticated', 'error');
                 return;
             }
 
@@ -333,20 +371,39 @@ const FootScanScreen = () => {
             const timestamp = new Date().getTime();
             const uploadedImages = [];
 
-            // Upload each image to Firebase Storage
+            // First, check for existing images
+            const existingImagesRef = firestore()
+                .collection('users')
+                .doc(userId)
+                .collection('scanned_images')
+                .orderBy('createdAt', 'desc')
+                .limit(1);
+
+            const existingImagesSnapshot = await existingImagesRef.get();
+            const existingImagesDoc = existingImagesSnapshot.docs[0];
+            const existingImages = existingImagesDoc?.data()?.images || [];
+
+            // Delete existing images from Firebase Storage
+            for (const existingImage of existingImages) {
+                try {
+                    const oldFilename = `${userId}/${existingImage.timestamp}_${existingImage.foot}_${existingImage.type}.jpg`;
+                    const oldReference = storage().ref(oldFilename);
+                    await oldReference.delete();
+                } catch (error) {
+                    console.warn('Error deleting old image:', error);
+                    // Continue with upload even if deletion fails
+                }
+            }
+
+            // Upload new images to Firebase Storage
             for (const image of capturedImages) {
                 try {
-                    // Create a unique filename for each image
                     const filename = `${userId}/${timestamp}_${image.foot}_${image.type}.jpg`;
                     const reference = storage().ref(filename);
 
-                    // Upload the image
                     await reference.putFile(image.path);
-
-                    // Get the download URL
                     const url = await reference.getDownloadURL();
 
-                    // Add to our array of uploaded images
                     uploadedImages.push({
                         foot: image.foot,
                         type: image.type,
@@ -359,24 +416,33 @@ const FootScanScreen = () => {
                 }
             }
 
-            // Store the URLs in Firestore
-            await firestore()
-                .collection('users')
-                .doc(userId)
-                .collection('scanned_images')
-                .doc(timestamp.toString())
-                .set({
+            // Update or create new document in Firestore
+            if (existingImagesDoc) {
+                // Update existing document
+                await existingImagesDoc.ref.update({
                     images: uploadedImages,
-                    createdAt: firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firestore.FieldValue.serverTimestamp(),
                     status: 'completed',
                 });
+            } else {
+                // Create new document
+                await firestore()
+                    .collection('users')
+                    .doc(userId)
+                    .collection('scanned_images')
+                    .doc(timestamp.toString())
+                    .set({
+                        images: uploadedImages,
+                        createdAt: firestore.FieldValue.serverTimestamp(),
+                        status: 'completed',
+                    });
+            }
 
-            Alert.alert('Success', 'All images have been uploaded successfully!');
-            // navigation.navigate('InsoleQuestions');
+            showAlert('Success', 'All images have been updated successfully!', 'success');
             setShowWebView(true);
         } catch (error) {
             console.error('Error in handleContinue:', error);
-            Alert.alert('Error', 'Failed to upload images. Please try again.');
+            showAlert('Error', 'Failed to upload images. Please try again.', 'error');
         } finally {
             setIsUploading(false);
         }
@@ -725,8 +791,13 @@ const FootScanScreen = () => {
             >
                 <Text style={styles.nextText}>Cancel</Text>
             </TouchableOpacity>
-
-
+            <CustomAlertModal
+                visible={alertModal.visible}
+                title={alertModal.title}
+                message={alertModal.message}
+                type={alertModal.type}
+                onClose={hideAlert}
+            />
         </View>
     );
 };

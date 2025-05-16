@@ -7,11 +7,14 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
-  Alert,
+  Platform,
 } from 'react-native';
-import { getAuth } from '@react-native-firebase/auth';
+import { getAuth, GoogleAuthProvider } from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
+import CustomAlertModal from '../../Components/CustomAlertModal';
+import firestore from '@react-native-firebase/firestore';
 
 // Define navigation types
 type RootStackParamList = {
@@ -20,12 +23,14 @@ type RootStackParamList = {
   MainTabs: undefined;
   Home: undefined;
   ForgotPasswordScreen: undefined;
+  SignupDetails: undefined;
 };
 
 // Export the logout function so it can be used by other screens
 export const handleLogout = async () => {
   try {
     await getAuth().signOut();
+    await GoogleSignin.signOut();
     console.log('User signed out successfully');
   } catch (error) {
     console.error('Error signing out:', error);
@@ -36,23 +41,111 @@ const LoginScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
 
-  const handleLogin = () => {
-    console.log('Login pressed with:', email, password);
-    // Implement your login logic here
-    getAuth().signInWithEmailAndPassword(email, password)
-      .then(userCredential => {
-        console.log('Logged in!', userCredential.user.email);
-      })
-      .catch(error => {
-        Alert.alert('Login error:', error.message);
-      });
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
+      await getAuth().signInWithEmailAndPassword(email, password);
+    } catch (error: any) {
+      // Check for specific Firebase auth error codes
+      switch (error.code) {
+        case 'auth/invalid-email':
+          showAlert('Invalid Email', 'Please enter a valid email address.', 'error');
+          break;
+        case 'auth/user-disabled':
+          showAlert('Account Disabled', 'This account has been disabled. Please contact support.', 'error');
+          break;
+        case 'auth/user-not-found':
+          showAlert('Account Not Found', 'No account found with this email address.', 'error');
+          break;
+        case 'auth/wrong-password':
+          showAlert('Invalid Password', 'The password you entered is incorrect.', 'error');
+          break;
+        case 'auth/too-many-requests':
+          showAlert('Too Many Attempts', 'Too many failed login attempts. Please try again later.', 'error');
+          break;
+        default:
+          // Handle empty inputs
+          if (!email.trim()) {
+            showAlert('Email Required', 'Please enter your email address.', 'error');
+          } else if (!password.trim()) {
+            showAlert('Password Required', 'Please enter your password.', 'error');
+          } else {
+            showAlert('Login Error', 'An unexpected error occurred. Please try again.', 'error');
+          }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      // Ensure Google Play services are available
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+      // Get the user's tokens
+      const userInfo = await GoogleSignin.signIn();
+      const { accessToken } = await GoogleSignin.getTokens();
+
+      // Create a Google credential with the access token
+      const googleCredential = GoogleAuthProvider.credential(undefined, accessToken);
+
+      // Sign-in the user with the credential
+      const userCredential = await getAuth().signInWithCredential(googleCredential);
+
+      // Check if user exists in Firestore
+      const userDoc = await firestore()
+        .collection('users')
+        .doc(userCredential.user.uid)
+        .get();
+
+      if (!userDoc.exists) {
+        // If user doesn't exist in Firestore, they are new
+        navigation.navigate('SignupDetails');
+      }
+    } catch (error: any) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        showAlert('Account Exists', 'An account already exists with this email using a different sign-in method.', 'error');
+      } else {
+        showAlert('Sign-In Error', 'Failed to sign in with Google. Please try again.', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    if (Platform.OS === 'ios') {
+      showAlert('Coming Soon', 'Apple Sign-In will be available soon!', 'info');
+    } else {
+      showAlert('Not Available', 'Apple Sign-In is only available on iOS devices.', 'info');
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-
-
       <View style={styles.formContainer}>
         <Text style={styles.inputLabel}>Email Address</Text>
         <TextInput
@@ -62,6 +155,7 @@ const LoginScreen = () => {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!loading}
         />
 
         <Text style={styles.inputLabel}>Password</Text>
@@ -71,13 +165,24 @@ const LoginScreen = () => {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          editable={!loading}
         />
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Log In</Text>
+        <TouchableOpacity
+          style={[styles.loginButton, loading && styles.disabledButton]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <Text style={styles.loginButtonText}>
+            {loading ? 'Signing in...' : 'Log In'}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.forgotPasswordContainer} onPress={() => navigation.navigate('ForgotPasswordScreen')}>
+        <TouchableOpacity
+          style={styles.forgotPasswordContainer}
+          onPress={() => navigation.navigate('ForgotPasswordScreen')}
+          disabled={loading}
+        >
           <Text style={styles.forgotPasswordText}>Forgot password?</Text>
         </TouchableOpacity>
 
@@ -87,7 +192,11 @@ const LoginScreen = () => {
           <View style={styles.divider} />
         </View>
 
-        <TouchableOpacity style={styles.socialButton}>
+        <TouchableOpacity
+          style={[styles.socialButton, loading && styles.disabledButton]}
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+        >
           <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }}
             style={styles.socialIcon}
@@ -95,21 +204,30 @@ const LoginScreen = () => {
           <Text style={styles.socialButtonText}>Continue with Google</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.socialButton}>
+        <TouchableOpacity
+          style={[styles.socialButton, loading && styles.disabledButton]}
+          onPress={handleAppleSignIn}
+          disabled={loading}
+        >
           <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/0/747.png' }}
             style={styles.socialIcon}
           />
           <Text style={styles.socialButtonText}>Continue with Apple</Text>
         </TouchableOpacity>
-
       </View>
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           We will never post anything without your permission.
         </Text>
       </View>
-
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };
@@ -171,6 +289,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   forgotPasswordContainer: {
     alignItems: 'center',

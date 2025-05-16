@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '../../contexts/UserContext';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 type RootStackParamList = {
   InsoleQuestions: undefined;
@@ -90,6 +91,12 @@ const InsoleQuestions = () => {
   });
 
   const [modalField, setModalField] = useState<keyof AnswerType | null>(null);
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
 
   // Auto-fill age group and activity level from userData
   useEffect(() => {
@@ -113,9 +120,24 @@ const InsoleQuestions = () => {
     setModalField(null);
   };
 
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
+
   const calculateRecommendation = async () => {
-    if (answers.ageGroup === '' || answers.activityLevel === '' || answers.painLocation === '' || answers.painFrequency === '' || answers.footPosture === '' || answers.archType === '' || answers.medicalCondition === '') {
-      Alert.alert('Please answer all questions before submitting.');
+    // Check if all questions are answered
+    const unansweredQuestions = Object.keys(answers).filter(key => answers[key as keyof AnswerType] === '');
+    if (unansweredQuestions.length > 0) {
+      showAlert('Incomplete Form', 'Please answer all questions before submitting.', 'error');
       return;
     }
 
@@ -292,6 +314,13 @@ const InsoleQuestions = () => {
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
       </ScrollView>
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };

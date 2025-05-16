@@ -102,8 +102,10 @@ const InsoleRecommendation = () => {
   // Function to handle adding insole to cart
   const handleAddToCart = (insoleType: InsoleType) => {
     const insole = insoleData[insoleType];
+    // console.log(insole);
 
     // Format the insole data as expected by the cart context
+    // insole-sports
     const product = {
       id: `insole-${insoleType.toLowerCase()}`,
       title: insole.name,
@@ -112,9 +114,11 @@ const InsoleRecommendation = () => {
       selectedImage: Image.resolveAssetSource(insole.image).uri,
       description: insole.features.join(' | '),
       selectedSize: shoeSize.country + ' ' + shoeSize.size,
+      selectedColor:'NoOptions',
       quantity: 1,
       priceValue: insole.price,
     };
+    console.log(product);
 
     // Add to cart and navigate
     addToCart(product);

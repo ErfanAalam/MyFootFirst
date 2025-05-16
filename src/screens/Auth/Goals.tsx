@@ -12,6 +12,9 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Alert } from 'react-native';
+import CustomAlertModal from '../../Components/CustomAlertModal';
+
+
 
 type RootStackParamList = {
   Goals: {
@@ -39,6 +42,26 @@ const Goals = ({ route }: { route: GoalsRouteProp }) => {
         countryCode, phone, callingCode, dob, gender } = route.params;
 
   const [selectedLevel, setSelectedLevel] = useState('active');
+
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
 
   const activityLevels = [
     {
@@ -76,17 +99,11 @@ const Goals = ({ route }: { route: GoalsRouteProp }) => {
                gender,
                createdAt: new Date(),
              });
-        // navigation.navigate('Home');
           } catch (error: any) {
-            console.error('Error signing up:', error);
-             Alert.alert("Signup Error", error.message);
+            showAlert('Sign - Up Error ','Failed to SignUp please Try Again','error');
           }
         };
 
-//   const handleNext = () => {
-//     // Navigate to the next screen with the selected activity level
-//     navigation.navigate('NextScreen', { activityLevel: selectedLevel });
-//   };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -134,6 +151,13 @@ const Goals = ({ route }: { route: GoalsRouteProp }) => {
           <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
       </View>
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };

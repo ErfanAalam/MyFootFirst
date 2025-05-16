@@ -1,19 +1,39 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { getAuth, sendPasswordResetEmail } from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState('');
   const navigation = useNavigation();
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
 
   const handleResetPassword = async () => {
     try {
       await sendPasswordResetEmail(getAuth(), email);
-      Alert.alert('Success', 'Password reset email sent!');
+      showAlert('Success', 'Password reset email sent!', 'success');
       navigation.goBack(); // or navigate('Login') if needed
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      showAlert('Error', error.message, 'error');
     }
   };
 
@@ -31,6 +51,13 @@ const ForgotPasswordScreen = () => {
       <TouchableOpacity onPress={handleResetPassword} style={styles.button}>
         <Text style={styles.buttonText}>Send Reset Link</Text>
       </TouchableOpacity>
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </View>
   );
 };
