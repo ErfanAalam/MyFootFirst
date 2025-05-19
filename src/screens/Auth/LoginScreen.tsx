@@ -9,12 +9,13 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import { getAuth, GoogleAuthProvider } from '@react-native-firebase/auth';
+import { getAuth, GoogleAuthProvider, OAuthProvider } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
 import CustomAlertModal from '../../Components/CustomAlertModal';
 import firestore from '@react-native-firebase/firestore';
+import { appleAuth } from '@invertase/react-native-apple-authentication';
 
 // Define navigation types
 type RootStackParamList = {
@@ -106,7 +107,7 @@ const LoginScreen = () => {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
       // Get the user's tokens
-      const userInfo = await GoogleSignin.signIn();
+      await GoogleSignin.signIn();
       const { accessToken } = await GoogleSignin.getTokens();
 
       // Create a Google credential with the access token
@@ -123,7 +124,8 @@ const LoginScreen = () => {
 
       if (!userDoc.exists) {
         // If user doesn't exist in Firestore, they are new
-        navigation.navigate('SignupDetails');
+        // navigation.navigate('SignupDetails');
+        
       }
     } catch (error: any) {
       if (error.code === 'auth/account-exists-with-different-credential') {
@@ -137,10 +139,63 @@ const LoginScreen = () => {
   };
 
   const handleAppleSignIn = async () => {
-    if (Platform.OS === 'ios') {
-      showAlert('Coming Soon', 'Apple Sign-In will be available soon!', 'info');
-    } else {
+    if (Platform.OS !== 'ios') {
       showAlert('Not Available', 'Apple Sign-In is only available on iOS devices.', 'info');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Start the sign-in request
+      const appleAuthResponse = await appleAuth.performRequest({
+        requestedOperation: appleAuth.Operation.LOGIN,
+        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+      });
+
+      // Ensure Apple returned a user identityToken
+      if (!appleAuthResponse.identityToken) {
+        throw new Error('Apple Sign-In failed - no identify token returned');
+      }
+
+      // Create a Firebase credential from the response
+      const { identityToken, nonce } = appleAuthResponse;
+      const appleCredential = OAuthProvider.credential('apple.com', identityToken, nonce);
+
+      // Sign in with credential
+      const userCredential = await getAuth().signInWithCredential(appleCredential);
+
+      // If the user's name is available, update their profile
+      if (appleAuthResponse.fullName) {
+        const { givenName, familyName } = appleAuthResponse.fullName;
+        const displayName = `${givenName || ''} ${familyName || ''}`.trim();
+        
+        if (displayName) {
+          await userCredential.user.updateProfile({
+            displayName,
+          });
+        }
+      }
+
+      // Check if user exists in Firestore
+      const userDoc = await firestore()
+        .collection('users')
+        .doc(userCredential.user.uid)
+        .get();
+
+      if (!userDoc.exists) {
+        // If user doesn't exist in Firestore, they are new
+        // navigation.navigate('SignupDetails');
+      }
+
+    } catch (error: any) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        showAlert('Account Exists', 'An account already exists with this email using a different sign-in method.', 'error');
+      } else {
+        showAlert('Sign-In Error', 'Failed to sign in with Apple. Please try again.', 'error');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 

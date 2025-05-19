@@ -29,6 +29,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Listen for auth state changes
@@ -121,6 +122,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loading,
     updateUserData,
     saveInsoleAnswers,
+    hasProfile,
+    setHasProfile,
   };
 
   return (

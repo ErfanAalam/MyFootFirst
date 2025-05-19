@@ -15,70 +15,22 @@ interface VideoItem {
   id: string;
   title: string;
   subtitle: string;
-  duration: string;
-  image: string;
+  description: string;
+  imageUrl: string;
   videoUrl: string;
+  createdAt: any; // Firestore timestamp
 }
-
-// Define video data with YouTube URLs for embedding
-const videoData: VideoItem[] = [
-  {
-    id: '1',
-    title: 'Sleep Preparation',
-    subtitle: 'Guided Sleep Meditation',
-    duration: '15 min',
-    image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=2070&auto=format&fit=crop',
-    videoUrl: 'rRFu0IKNMks?si=FqTDYg6A4oQKPNhS',
-  },
-  {
-    id: '2',
-    title: 'Morning Energy',
-    subtitle: 'Start Your Day Right',
-    duration: '7 min',
-    image: 'https://miro.medium.com/v2/resize:fit:1400/0*92EtfQXxrWp8Pk_a',
-    videoUrl: 'Y2VF8tmLFHw',
-  },
-];
-
-
-
-// Helper function to get YouTube embed HTML
-const getYouTubeEmbedHTML = (videoId: string) => {
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
-          .video-container { position: relative; padding-top: 56.25%; /* 16:9 Aspect Ratio */ }
-          iframe { position: absolute; top: 0; left: 0; bottom: 0; right: 0; width: 100%; height: 100%; }
-        </style>
-      </head>
-      <body>
-        <div class="video-container">
-          <iframe 
-            width="100%" 
-            height="100%" 
-            src="https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&controls=1" 
-            frameborder="0" 
-            allowfullscreen>
-          </iframe>
-        </div>
-      </body>
-    </html>
-  `;
-};
 
 const EducationScreen = () => {
   const [activeTab, setActiveTab] = useState('blog');
   const [selectedBlog, setSelectedBlog] = useState<BlogItem | null>(null);
   const [playingVideo, setPlayingVideo] = useState<VideoItem | null>(null);
-
   const [blogData, setBlogData] = useState<BlogItem[]>([]);
+  const [videoData, setVideoData] = useState<VideoItem[]>([]);
 
   useEffect(() => {
-    const unsubscribe = firestore()
+    // Fetch blogs
+    const unsubscribeBlogs = firestore()
       .collection('Blogs')
       .onSnapshot(snapshot => {
         const BlogData = snapshot.docs.map(doc => ({
@@ -88,7 +40,22 @@ const EducationScreen = () => {
         setBlogData(BlogData);
       });
 
-    return () => unsubscribe();
+    // Fetch videos
+    const unsubscribeVideos = firestore()
+      .collection('videos')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        const videos = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as VideoItem[];
+        setVideoData(videos);
+      });
+
+    return () => {
+      unsubscribeBlogs();
+      unsubscribeVideos();
+    };
   }, []);
 
   const renderBlogItem = (item: BlogItem) => {
@@ -112,13 +79,10 @@ const EducationScreen = () => {
         onPress={() => setPlayingVideo(item)}
       >
         <View style={styles.videoImageContainer}>
-          <Image source={{ uri: item.image }} style={styles.itemImage} />
+          <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
           <View style={styles.playButton}>
             <Text style={styles.playButtonText}>▶</Text>
           </View>
-        </View>
-        <View style={styles.durationBadge}>
-          <Text style={styles.durationText}>{item.duration}</Text>
         </View>
         <Text style={styles.itemTitle}>{item.title}</Text>
         <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
@@ -168,7 +132,7 @@ const EducationScreen = () => {
         <View style={styles.videoDetailContainer}>
           <View style={styles.videoPlayerContainer}>
             <WebView
-              source={{ html: getYouTubeEmbedHTML(playingVideo.videoUrl) }}
+              source={{ uri: playingVideo.videoUrl }}
               style={styles.videoPlayerContent}
               mediaPlaybackRequiresUserAction={false}
               allowsFullscreenVideo={true}
@@ -180,7 +144,7 @@ const EducationScreen = () => {
           <View style={styles.detailContent}>
             <Text style={styles.detailTitle}>{playingVideo.title}</Text>
             <Text style={styles.detailSubtitle}>{playingVideo.subtitle}</Text>
-            <Text style={styles.detailDuration}>{playingVideo.duration}</Text>
+            <Text style={styles.detailDescription}>{playingVideo.description}</Text>
           </View>
         </View>
       </View>

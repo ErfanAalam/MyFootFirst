@@ -14,6 +14,9 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import FootDiagram from '../../Components/FootDiagram';
 import { useUser } from '../../contexts/UserContext';
+import { getAuth } from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 
 
@@ -64,7 +67,25 @@ const HomeScreen = () => {
       image: require('../../assets/images/banner3.jpeg'),
     },
   ]);
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
 
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
 
   const handlePainPointSelection = (pointId: string) => {
     setPainPoints((prev) =>
@@ -73,7 +94,29 @@ const HomeScreen = () => {
         : [...prev, pointId]
     );
   };
-  // console.log(painPoints);
+
+  const handleScanFoot = async () => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        showAlert('Error', 'User not logged in', 'error');
+        return;
+      }
+
+      await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .update({
+          painPoints: painPoints
+        });
+
+      navigation.navigate("FootScanScreen");
+    } catch (error) {
+      showAlert('Error', 'Failed to save pain points', 'error');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -126,7 +169,7 @@ const HomeScreen = () => {
 
             <TouchableOpacity
               style={styles.nextButton}
-              onPress={() => navigation.navigate("FootScanScreen")}
+              onPress={handleScanFoot}
             >
               <Text style={styles.buttonText}>Scan Your Foot</Text>
             </TouchableOpacity>
@@ -173,6 +216,14 @@ const HomeScreen = () => {
           />
         ))}
       </View>
+
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 };
