@@ -75,57 +75,65 @@ def create_checkout_session():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
-def detect_a4_and_foot(image):
-    """Detect A4 paper and foot in the provided image"""
-    # Convert to grayscale and blur
+def detect_a4(image):
+    """Detects an A4 paper in the image and returns its contour if found."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(blurred, 50, 150)
 
-    # Edge detection
-    edges = cv2.Canny(blurred, 50, 150, apertureSize=3)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    a4_contours = []
+    aspect_ratio_threshold = 0.65  # Adjust as needed
+    min_a4_area = 20000  # Adjust based on expected A4 size in pixels
 
-    # Hough line detection
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=100, minLineLength=100, maxLineGap=20)
+    for cnt in contours:
+        perimeter = cv2.arcLength(cnt, True)
+        approx = cv2.approxPolyDP(cnt, 0.02 * perimeter, True)
+        if len(approx) == 4:  # Potential rectangle
+            x, y, w, h = cv2.boundingRect(approx)
+            aspect_ratio = float(w) / h
+            area = cv2.contourArea(cnt)
 
-    if lines is None or len(lines) < 4:
-        return {'a4_detected': False, 'foot_on_a4': False}
+            if (aspect_ratio > aspect_ratio_threshold and aspect_ratio < (1 / aspect_ratio_threshold) and
+                    area > min_a4_area):
+                a4_contours.append(approx)
 
-    # Collect all line endpoints
-    points = []
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        points.append((x1, y1))
-        points.append((x2, y2))
+    if a4_contours:
+        # Return the largest detected A4 contour (assuming the most prominent one is the actual sheet)
+        return max(a4_contours, key=cv2.contourArea)
+    return None
 
-    # Cluster intersections
-    clustering = DBSCAN(eps=30, min_samples=2).fit(points)
-    clusters = clustering.labels_
-    num_corners = len(set(clusters)) - (1 if -1 in clusters else 0)
-
-    a4_detected = num_corners >= 3  # Accept even with 1 missing corner
-
-    # A4 region mask
-    mask = np.zeros_like(gray)
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        cv2.line(mask, (x1, y1), (x2, y2), 255, 5)
-
-    mask_dilated = cv2.dilate(mask, np.ones((11, 11), np.uint8), iterations=2)
-
-    # Apply mask and detect larger non-rectangular blobs = foot
-    foot_region = cv2.bitwise_and(gray, gray, mask=mask_dilated)
-    _, foot_thresh = cv2.threshold(foot_region, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    foot_edges = cv2.Canny(foot_thresh, 50, 150)
+def detect_foot_on_region(image_gray, region_mask):
+    """Detects a foot-like blob within a specified region of interest."""
+    masked_image = cv2.bitwise_and(image_gray, image_gray, mask=region_mask)
+    _, thresh = cv2.threshold(masked_image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU) # Invert for foot to be white
+    dilated_thresh = cv2.dilate(thresh, np.ones((5, 5), np.uint8), iterations=2)
+    foot_edges = cv2.Canny(dilated_thresh, 30, 100)
     contours, _ = cv2.findContours(foot_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    foot_detected = False
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if 5000 < area < 200000:  # Range tuned for foot size
-            foot_detected = True
-            break
+        # Adjust area range based on expected foot size relative to A4
+        if 3000 < area < 150000:
+            # Further checks (e.g., aspect ratio, solidity) could be added here
+            return True
+    return False
 
-    return {'a4_detected': a4_detected, 'foot_on_a4': foot_detected}
+def detect_a4_and_foot_enhanced(image):
+    """Enhanced function to detect A4 paper and a foot on it."""
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    a4_contour = detect_a4(image)
+
+    if a4_contour is not None:
+        # Create a mask for the detected A4 region
+        a4_mask = np.zeros_like(gray)
+        cv2.drawContours(a4_mask, [a4_contour], -1, 255, cv2.FILLED)
+
+        # Detect foot within the A4 region
+        foot_detected = detect_foot_on_region(gray, a4_mask)
+        return {'a4_detected': True, 'foot_on_a4': foot_detected}
+    else:
+        return {'a4_detected': False, 'foot_on_a4': False}
 
 @app.route('/detect-sheet', methods=['POST'])
 def detect_sheet():
@@ -141,7 +149,7 @@ def detect_sheet():
         if image is None:
             return jsonify({'error': 'Invalid image format'}), 400
 
-        result = detect_a4_and_foot(image)
+        result = detect_a4_and_foot_enhanced(image)
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': f'Error processing image: {str(e)}'}), 500

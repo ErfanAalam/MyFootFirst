@@ -99,7 +99,7 @@ const HomeScreen = () => {
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      
+
       if (!user) {
         showAlert('Error', 'User not logged in', 'error');
         return;
@@ -109,7 +109,7 @@ const HomeScreen = () => {
         .collection('users')
         .doc(user.uid)
         .update({
-          painPoints: painPoints
+          painPoints: painPoints,
         });
 
       navigation.navigate("FootScanScreen");

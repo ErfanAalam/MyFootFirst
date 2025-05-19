@@ -45,18 +45,29 @@ type RootStackParamList = {
   OrderHistory: undefined;
 };
 
+interface UserContextType {
+  hasProfile: boolean | null;
+  setHasProfile: (value: boolean | null) => void;
+}
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { hasProfile, setHasProfile } = useUser();
+  const [isCheckingProfile, setIsCheckingProfile] = useState(false);
+  const { hasProfile, setHasProfile } = useUser() as UserContextType;
 
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsLoggedIn(true);
+        setIsCheckingProfile(true);
+
+        // Add 10 second delay before checking profile
+        await new Promise(resolve => setTimeout(resolve, 4000));
+
         // Check if user has completed profile
         try {
           const userDoc = await firestore()
@@ -68,10 +79,13 @@ const RootNavigator = () => {
         } catch (error) {
           console.error('Error checking user profile:', error);
           setHasProfile(false);
+        } finally {
+          setIsCheckingProfile(false);
         }
       } else {
         setIsLoggedIn(false);
         setHasProfile(null);
+        setIsCheckingProfile(false);
       }
     });
 
@@ -84,9 +98,10 @@ const RootNavigator = () => {
       unsubscribe();
       clearTimeout(timer);
     };
-  }, []);
+  }, [setHasProfile]);
 
-  if (isLoading) {
+  // if (isLoading || isCheckingProfile) {
+    if (isLoading) {
     return <SplashScreen />;
   }
 

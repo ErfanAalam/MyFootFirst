@@ -10,6 +10,7 @@ import {
   Platform,
   Keyboard,
   Modal,
+  Pressable,
 } from 'react-native';
 import CountryPicker from 'react-native-country-picker-modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -47,6 +48,9 @@ const SignupDetails = () => {
     type: 'info' as 'success' | 'error' | 'info',
   });
 
+  const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
   const onSelectCountry = (country: any) => {
     setCountryCode(country.cca2);
     setCallingCode(country.callingCode[0]);
@@ -70,6 +74,12 @@ const SignupDetails = () => {
     // Check if all required fields are filled
     if (!firstName || !surname || !email || !password || !confirmPassword || !gender || !dob) {
       showAlert('Validation Error', 'All required fields must be filled.', 'error');
+      return;
+    }
+
+    // Check if privacy policy is accepted
+    if (!privacyPolicyAccepted) {
+      showAlert('Privacy Policy', 'Please accept the privacy policy to continue.', 'error');
       return;
     }
 
@@ -269,6 +279,156 @@ const SignupDetails = () => {
     })
   };
 
+  const PrivacyPolicyModal = () => (
+    <Modal
+      visible={showPrivacyModal}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setShowPrivacyModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.privacyModalContent}>
+          <ScrollView style={styles.privacyScrollView}>
+            <Text style={styles.privacyTitle}>Privacy Policy</Text>
+            <Text style={styles.privacySubtitle}>MyFootFirst</Text>
+            <Text style={styles.privacyEffectiveDate}>Effective Date: 10 May 2025</Text>
+            
+            <Text style={styles.privacyIntro}>
+              This Privacy Policy explains how MyFootFirst collects, uses, stores, and shares personal data when you use our mobile applications and services, whether as a business partner (B2B) or an individual customer (B2C), in accordance with the General Data Protection Regulation (GDPR) and other applicable laws.
+            </Text>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>1. Data Controller</Text>
+              <Text style={styles.privacyText}>
+                MyFootFirst is the controller of your personal data. For any questions or requests, you may contact us at{' '}
+                <Text style={styles.privacyEmail}>info@myfootfirst.com</Text>
+              </Text>
+            </View>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>2. What We Collect</Text>
+              <Text style={styles.privacyText}>
+                We may collect and process the following categories of personal data:
+              </Text>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBulletTitle}>Identity and Contact Data:</Text>
+                <Text style={styles.privacyText}>Name, email, business details, and phone number.</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBulletTitle}>Health-Related Information:</Text>
+                <Text style={styles.privacyText}>Self-declared conditions such as diabetes or hypertension (used to personalize product recommendations).</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBulletTitle}>Biometric Data:</Text>
+                <Text style={styles.privacyText}>Foot images and measurements for orthotic creation, potentially used for generating anonymized, proprietary 3D models.</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBulletTitle}>Transaction Data:</Text>
+                <Text style={styles.privacyText}>Purchase and payment information via providers like Stripe.</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBulletTitle}>Technical Data:</Text>
+                <Text style={styles.privacyText}>Device ID, app usage, crash logs, and location (if permission granted).</Text>
+              </View>
+            </View>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>3. How We Use Your Data</Text>
+              <Text style={styles.privacyText}>We use your data to:</Text>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Provide and improve our services</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Customize your experience</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Create and deliver orthotic products</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Fulfill legal and contractual obligations</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Conduct anonymized product development and analytics</Text>
+              </View>
+              <Text style={[styles.privacyText, styles.privacyNote]}>
+                All processing is based on one or more lawful bases under GDPR: consent, performance of a contract, legal obligation, or legitimate interest.
+              </Text>
+            </View>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>4. Data Retention</Text>
+              <Text style={styles.privacyText}>
+                We retain personal data for as long as necessary to fulfill the purposes outlined above, including up to 1 year for biometric data. Anonymized data may be retained longer for R&D purposes.
+              </Text>
+            </View>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>5. Sharing and Third Parties</Text>
+              <Text style={styles.privacyText}>
+                We use third-party services (e.g., Stripe, AWS, Firebase) for storage, payment processing, and analytics. These services are independently responsible for GDPR compliance. We do not sell your personal data.
+              </Text>
+            </View>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>6. Your Rights (Under GDPR)</Text>
+              <Text style={styles.privacyText}>You have the right to:</Text>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Access your data</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Correct or delete your data</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Restrict or object to processing</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Data portability</Text>
+              </View>
+              <View style={styles.privacyBulletPoint}>
+                <Text style={styles.privacyBullet}>•</Text>
+                <Text style={styles.privacyText}>Withdraw consent at any time</Text>
+              </View>
+              <Text style={[styles.privacyText, styles.privacyNote]}>
+                Requests can be sent to{' '}
+                <Text style={styles.privacyEmail}>info@myfootfirst.com</Text>
+                . We will respond within 30 days.
+              </Text>
+            </View>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>7. Security</Text>
+              <Text style={styles.privacyText}>
+                We take reasonable technical and organizational measures to protect your data, but we cannot guarantee security of third-party platforms or user-managed access.
+              </Text>
+            </View>
+
+            <View style={styles.privacySection}>
+              <Text style={styles.privacySectionTitle}>8. Responsibilities of Business Users</Text>
+              <Text style={styles.privacyText}>
+                Retailers and other business users are responsible for ensuring their use of the platform and any employee or customer data they input complies with applicable data protection laws.
+              </Text>
+            </View>
+          </ScrollView>
+          <TouchableOpacity
+            style={styles.closePrivacyButton}
+            onPress={() => setShowPrivacyModal(false)}
+          >
+            <Text style={styles.closePrivacyButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -430,9 +590,33 @@ const SignupDetails = () => {
           />
         )}
 
+        <View style={styles.privacyContainer}>
+          <Pressable
+            style={styles.checkboxContainer}
+            onPress={() => setPrivacyPolicyAccepted(!privacyPolicyAccepted)}
+          >
+            <View style={[styles.checkbox, privacyPolicyAccepted && styles.checkboxChecked]}>
+              {privacyPolicyAccepted && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <View style={styles.privacyTextContainer}>
+              <Text style={styles.privacyLabel}>
+                I accept the{' '}
+                <Text
+                  style={styles.privacyLink}
+                  onPress={() => setShowPrivacyModal(true)}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
           <Text style={styles.submitButtonText}>Continue</Text>
         </TouchableOpacity>
+
+        <PrivacyPolicyModal />
       </ScrollView>
       <CustomAlertModal
         visible={alertModal.visible}
@@ -652,6 +836,145 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: 'red',
+  },
+  privacyContainer: {
+    marginBottom: 20,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#00843D',
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#00843D',
+  },
+  checkmark: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  privacyTextContainer: {
+    flex: 1,
+  },
+  privacyLabel: {
+    fontSize: 14,
+    color: '#333',
+  },
+  privacyLink: {
+    color: '#00843D',
+    textDecorationLine: 'underline',
+  },
+  privacyModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 24,
+    width: '90%',
+    maxHeight: '85%',
+    margin: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  privacyScrollView: {
+    maxHeight: '90%',
+  },
+  privacyTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#00843D',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  privacySubtitle: {
+    fontSize: 20,
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  privacyEffectiveDate: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  privacyIntro: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#333',
+    marginBottom: 24,
+    textAlign: 'justify',
+  },
+  privacySection: {
+    marginBottom: 24,
+  },
+  privacySectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#00843D',
+    marginBottom: 12,
+  },
+  privacyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#333',
+    marginBottom: 8,
+  },
+  privacyBulletPoint: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    paddingLeft: 8,
+  },
+  privacyBulletTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  privacyBullet: {
+    fontSize: 15,
+    color: '#00843D',
+    marginRight: 8,
+    width: 20,
+  },
+  privacyNote: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 12,
+  },
+  privacyEmail: {
+    color: '#00843D',
+    textDecorationLine: 'underline',
+  },
+  closePrivacyButton: {
+    backgroundColor: '#00843D',
+    padding: 16,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  closePrivacyButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

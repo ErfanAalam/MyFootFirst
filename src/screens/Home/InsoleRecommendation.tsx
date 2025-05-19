@@ -5,6 +5,7 @@ import { Button, IconButton } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCart } from '../../contexts/CartContext';
+import firestore from '@react-native-firebase/firestore';
 
 type InsoleType = 'Sport' | 'Comfort' | 'Stability';
 
@@ -17,16 +18,22 @@ type RootStackParamList = {
 type InsoleRecommendationRouteProp = RouteProp<RootStackParamList, 'InsoleRecommendation'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'InsoleRecommendation'>;
 
+interface InsolePricing {
+  Sport: number;
+  Comfort: number;
+  Stability: number;
+  Shipping: number;
+  currency: string;
+}
+
 const insoleData = {
   Sport: {
     id: 'insole-sport',
     name: 'SPORT Insole',
-    image: require('../../assets/images/banner1.jpg'), // Add appropriate image path
-    price: 49.99,
-    newPrice: 49.99,
+    image: require('../../assets/images/banner1.jpg'),
     features: [
       'Lightweight and flexible for active movement',
-      'Ideal for high arches and athletic use',
+      'Ideal for athletic use',
       'Reduces foot fatigue during high-impact activities',
       'Supports fast-paced walking, running, and workouts',
       'Breathable design keeps feet cool and dry',
@@ -35,12 +42,10 @@ const insoleData = {
   Comfort: {
     id: 'insole-comfort',
     name: 'COMFORT Insole',
-    image: require('../../assets/images/banner2.webp'), // Add appropriate image path
-    price: 39.99,
-    newPrice: 39.99,
+    image: require('../../assets/images/banner2.webp'),
     features: [
       'All-day cushioning for casual and work shoes',
-      'Great for normal arches and moderate activity',
+      'Great moderate activity',
       'Reduces pressure on forefoot and heel',
       'Soft foam base for maximum shock absorption',
       'Ideal for standing or walking for long hours',
@@ -49,11 +54,9 @@ const insoleData = {
   Stability: {
     id: 'insole-stability',
     name: 'STABILITY Insole',
-    image: require('../../assets/images/banner3.jpeg'), // Add appropriate image path
-    price: 44.99,
-    newPrice: 44.99,
+    image: require('../../assets/images/banner3.jpeg'),
     features: [
-      'Firm support for flat feet and overpronation',
+      'Firm support for feet',
       'Designed to ease chronic heel, knee, or back pain',
       'Extra arch support to improve alignment',
       'Rigid heel cup for motion control',
@@ -68,6 +71,8 @@ const InsoleRecommendation = () => {
   const { width } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
   const { addToCart } = useCart();
+  const [pricing, setPricing] = useState<InsolePricing | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Get the recommended insole type from navigation params
   const recommendedInsole = route.params.recommendedInsole;
@@ -87,7 +92,39 @@ const InsoleRecommendation = () => {
   // Card dimensions
   const CARD_WIDTH = width * 0.8;
   const SPACING = width * 0.03;
-  const VISIBLE_PEEK = width * 0.15;
+
+  // Fetch pricing from Firestore
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        // Try to get pricing for the user's country
+        const countryDoc = await firestore()
+          .collection('InsolePricing')
+          .doc(shoeSize.country)
+          .get();
+
+        if (countryDoc.exists) {
+          setPricing(countryDoc.data() as InsolePricing);
+        } else {
+          // If country not found, use Ireland's pricing as fallback
+          const irelandDoc = await firestore()
+            .collection('InsolePricing')
+            .doc('Ireland')
+            .get();
+
+          if (irelandDoc.exists) {
+            setPricing(irelandDoc.data() as InsolePricing);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching pricing:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPricing();
+  }, [shoeSize.country]);
 
   useEffect(() => {
     // Scroll to the middle card (recommended) on initial render
@@ -97,33 +134,53 @@ const InsoleRecommendation = () => {
         animated: false,
       });
     }, 100);
-  }, []);
+  }, [CARD_WIDTH, SPACING]);
 
   // Function to handle adding insole to cart
   const handleAddToCart = (insoleType: InsoleType) => {
+    if (!pricing) return;
+
     const insole = insoleData[insoleType];
-    // console.log(insole);
+    const price = pricing[insoleType];
 
     // Format the insole data as expected by the cart context
-    // insole-sports
     const product = {
       id: `insole-${insoleType.toLowerCase()}`,
       title: insole.name,
-      price: insole.price,
-      newPrice: "$" + insole.price,
+      price: price,
+      newPrice: pricing.currency + price,
       selectedImage: Image.resolveAssetSource(insole.image).uri,
       description: insole.features.join(' | '),
       selectedSize: shoeSize.country + ' ' + shoeSize.size,
-      selectedColor:'NoOptions',
+      selectedColor: 'NoOptions',
       quantity: 1,
-      priceValue: insole.price,
+      priceValue: price,
     };
-    console.log(product);
 
     // Add to cart and navigate
     addToCart(product);
     navigation.navigate('Cart');
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <Text>Loading pricing information...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!pricing) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <Text>Unable to load pricing information. Please try again later.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -157,6 +214,7 @@ const InsoleRecommendation = () => {
           {orderedTypes.map((type) => {
             const isRecommended = type === recommendedInsole;
             const insole = insoleData[type];
+            const price = pricing[type];
 
             return (
               <View
@@ -174,6 +232,7 @@ const InsoleRecommendation = () => {
                 )}
                 <Text style={[styles.cardTitle, isRecommended && styles.recommendedTitle]}>{insole.name}</Text>
                 <Image source={insole.image} style={styles.insoleImage} resizeMode="cover" />
+                <Text style={styles.priceText}>{pricing.currency}{price}</Text>
                 <View style={styles.featuresContainer}>
                   {insole.features.map((feature, i) => (
                     <View key={i} style={styles.featureRow}>
@@ -371,6 +430,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  priceText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#00843D',
+    textAlign: 'center',
+    marginBottom: 15,
   },
 });
 

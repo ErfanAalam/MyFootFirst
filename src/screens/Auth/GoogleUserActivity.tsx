@@ -5,6 +5,9 @@ import {
     TouchableOpacity,
     StyleSheet,
     SafeAreaView,
+    Modal,
+    Platform,
+    Keyboard,
 } from 'react-native';
 import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -43,6 +46,13 @@ const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) =
         type: 'info' as 'success' | 'error' | 'info',
     });
 
+    // Date picker states
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [datePickerStep, setDatePickerStep] = useState('year');
+    const [selectedYear, setSelectedYear] = useState<number | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+    const [formattedDob, setFormattedDob] = useState(dob);
+
     const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setAlertModal({
             visible: true,
@@ -70,6 +80,142 @@ const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) =
             title: 'Active',
         },
     ];
+
+    const showDatePickerModal = () => {
+        Keyboard.dismiss();
+        setDatePickerStep('year');
+        setSelectedYear(null);
+        setSelectedMonth(null);
+        setShowDatePicker(true);
+    };
+
+    const handleDateConfirm = (date: Date) => {
+        const formattedDate = date.toLocaleDateString('en-GB');
+        setFormattedDob(formattedDate);
+        setShowDatePicker(false);
+    };
+
+    const generateYearOptions = () => {
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        for (let i = currentYear; i >= currentYear - 100; i--) {
+            years.push(i);
+        }
+        return years;
+    };
+
+    const generateMonthOptions = () => {
+        return [
+            { value: 0, label: 'January' },
+            { value: 1, label: 'February' },
+            { value: 2, label: 'March' },
+            { value: 3, label: 'April' },
+            { value: 4, label: 'May' },
+            { value: 5, label: 'June' },
+            { value: 6, label: 'July' },
+            { value: 7, label: 'August' },
+            { value: 8, label: 'September' },
+            { value: 9, label: 'October' },
+            { value: 10, label: 'November' },
+            { value: 11, label: 'December' },
+        ];
+    };
+
+    const generateDayOptions = () => {
+        if (!selectedYear || selectedMonth === null) return [];
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    };
+
+    const handleYearSelect = (year: number) => {
+        setSelectedYear(year);
+        setDatePickerStep('month');
+    };
+
+    const handleMonthSelect = (month: number) => {
+        setSelectedMonth(month);
+        setDatePickerStep('day');
+    };
+
+    const handleDaySelect = (day: number) => {
+        if (selectedYear !== null && selectedMonth !== null) {
+            const date = new Date(selectedYear, selectedMonth, day);
+            handleDateConfirm(date);
+        }
+    };
+
+    const renderDatePickerContent = () => {
+        if (datePickerStep === 'year') {
+            return (
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Select Year</Text>
+                    <View style={styles.optionsContainer}>
+                        {generateYearOptions().map((year) => (
+                            <TouchableOpacity
+                                key={year}
+                                style={styles.optionButton}
+                                onPress={() => handleYearSelect(year)}
+                            >
+                                <Text style={styles.optionText}>{year}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                    <TouchableOpacity
+                        style={styles.cancelButton}
+                        onPress={() => setShowDatePicker(false)}
+                    >
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        } else if (datePickerStep === 'month') {
+            return (
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Select Month</Text>
+                    <View style={styles.optionsContainer}>
+                        {generateMonthOptions().map((month) => (
+                            <TouchableOpacity
+                                key={month.value}
+                                style={styles.optionButton}
+                                onPress={() => handleMonthSelect(month.value)}
+                            >
+                                <Text style={styles.optionText}>{month.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => setDatePickerStep('year')}
+                    >
+                        <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        } else if (datePickerStep === 'day') {
+            return (
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Select Day</Text>
+                    <View style={styles.optionsContainer}>
+                        {generateDayOptions().map((day) => (
+                            <TouchableOpacity
+                                key={day}
+                                style={styles.optionButton}
+                                onPress={() => handleDaySelect(day)}
+                            >
+                                <Text style={styles.optionText}>{day}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => setDatePickerStep('month')}
+                    >
+                        <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+    };
 
     const handleSubmit = async () => {
         try {
@@ -134,6 +280,31 @@ const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) =
                         </View>
                     </TouchableOpacity>
                 ))}
+
+                <TouchableOpacity
+                    onPress={showDatePickerModal}
+                    style={styles.dateInput}
+                >
+                    <Text style={formattedDob ? styles.dateText : styles.datePlaceholder}>
+                        {formattedDob || 'Select Date of Birth*'}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Date Picker Modal */}
+                <Modal
+                    visible={showDatePicker}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setShowDatePicker(false)}
+                >
+                    <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() => setShowDatePicker(false)}
+                    >
+                        {renderDatePickerContent()}
+                    </TouchableOpacity>
+                </Modal>
             </View>
 
             <View style={styles.footer}>
@@ -257,6 +428,65 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '600',
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 10,
+        padding: 20,
+        maxHeight: '80%',
+        width: '80%',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 15,
+        color: '#007bff',
+    },
+    optionsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+    },
+    optionButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        margin: 5,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 8,
+        alignItems: 'center',
+        minWidth: 70,
+    },
+    optionText: {
+        fontSize: 16,
+    },
+    cancelButton: {
+        marginTop: 15,
+        padding: 10,
+        alignSelf: 'center',
+    },
+    cancelButtonText: {
+        color: 'red',
+        fontSize: 16,
+    },
+    dateInput: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 15,
+    },
+    dateText: {
+        color: '#333',
+    },
+    datePlaceholder: {
+        color: '#999',
     },
 });
 

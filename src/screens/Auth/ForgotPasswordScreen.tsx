@@ -40,13 +40,15 @@ const ForgotPasswordScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Reset Your Password</Text>
+      <Text style={{padding:4}}>Enter your Email to get link...</Text>
       <TextInput
-        placeholder="Enter your email"
+        placeholder="Enter email"
         style={styles.input}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        placeholderTextColor="black"
       />
       <TouchableOpacity onPress={handleResetPassword} style={styles.button}>
         <Text style={styles.buttonText}>Send Reset Link</Text>

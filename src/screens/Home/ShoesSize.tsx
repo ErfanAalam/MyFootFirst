@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '../../contexts/UserContext';
 import CustomAlertModal from '../../Components/CustomAlertModal';
+import firestore from '@react-native-firebase/firestore';
 
 type RootStackParamList = {
     ShoesSize: {
@@ -37,7 +38,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ShoesSize'>
 // Shoe size conversion data
 const menSizes = {
     US: [6, 7, 8, 9, 10, 11, 12, 13],
-    UK: [5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5],
+    UK: [5, 6, 7, 8, 9, 10, 11, 12],
     EU: [39, 40, 41, 42.5, 44, 45, 46, 47.5],
 };
 
@@ -47,17 +48,40 @@ const womenSizes = {
     EU: [36, 37, 38, 39, 40, 41, 42, 43],
 };
 
+// Foot length ranges in cm for men and women
+const menFootLengthRanges = [
+    { min: 24.0, max: 24.5, sizeIndex: 0 },  // US 6
+    { min: 24.6, max: 25.2, sizeIndex: 1 },  // US 7
+    { min: 25.3, max: 26.0, sizeIndex: 2 },  // US 8
+    { min: 26.1, max: 26.7, sizeIndex: 3 },  // US 9
+    { min: 26.8, max: 27.4, sizeIndex: 4 },  // US 10
+    { min: 27.5, max: 28.0, sizeIndex: 5 },  // US 11
+    { min: 28.1, max: 28.7, sizeIndex: 6 },  // US 12
+    { min: 28.8, max: 29.4, sizeIndex: 7 },  // US 13
+];
+
+const womenFootLengthRanges = [
+    { min: 22.0, max: 22.5, sizeIndex: 0 },  // US 5
+    { min: 22.6, max: 23.2, sizeIndex: 1 },  // US 6
+    { min: 23.3, max: 23.9, sizeIndex: 2 },  // US 7
+    { min: 24.0, max: 24.5, sizeIndex: 3 },  // US 8
+    { min: 24.6, max: 25.2, sizeIndex: 4 },  // US 9
+    { min: 25.3, max: 26.0, sizeIndex: 5 },  // US 10
+    { min: 26.1, max: 26.7, sizeIndex: 6 },  // US 11
+    { min: 26.8, max: 27.4, sizeIndex: 7 },  // US 12
+];
+
 const ShoesSize = () => {
     const navigation = useNavigation<NavigationProp>();
     const route = useRoute<ShoesSizeRouteProp>();
-    const { user, userData } = useUser();
+    const { user } = useUser();
 
     const { gender, recommendedInsole, answers } = route.params;
 
     // State variables
     const [selectedCountry, setSelectedCountry] = useState<'US' | 'UK' | 'EU'>('US');
-    const [sizeIndex, setSizeIndex] = useState(3); // Default to middle size (e.g., US 9 for men, US 8 for women)
-    const [loading, setLoading] = useState(false);
+    const [sizeIndex, setSizeIndex] = useState(3); // Will be updated based on foot length
+    const [loading, setLoading] = useState(true);
     const [alertModal, setAlertModal] = useState({
         visible: false,
         title: '',
@@ -75,8 +99,65 @@ const ShoesSize = () => {
     // Get the appropriate size chart based on gender
     const sizeChart = gender.toLowerCase() === 'male' ? menSizes : womenSizes;
 
+    // Function to get recommended size index based on foot length
+    const getRecommendedSizeIndex = useCallback((footLengthCm: number, isMale: boolean) => {
+        const ranges = isMale ? menFootLengthRanges : womenFootLengthRanges;
+        const range = ranges.find(r => footLengthCm >= r.min && footLengthCm <= r.max);
+        return range ? range.sizeIndex : 3; // Default to middle size if no match found
+    }, []);
+
+    // Function to fetch latest measurements
+    const fetchLatestMeasurements = useCallback(async () => {
+        if (!user?.uid) return;
+
+        try {
+            const measurementsRef = firestore().collection('users').doc(user.uid).collection('measurements');
+            const querySnapshot = await measurementsRef
+                .orderBy('createdAt', 'desc')
+                .limit(1)
+                .get();
+
+            if (!querySnapshot.empty) {
+                const latestDoc = querySnapshot.docs[0];
+                const measurements = latestDoc.data().measurements;
+
+                // Convert foot length from meters to centimeters
+                const leftFootLengthCm = measurements.left_length * 100;
+                const rightFootLengthCm = measurements.right_length * 100;
+
+                console.log(leftFootLengthCm)
+                console.log(rightFootLengthCm)
+
+                // Use the larger foot length for recommendation
+                const footLengthCm = Math.max(leftFootLengthCm, rightFootLengthCm);
+
+                console.log()
+
+                // Get recommended size index based on foot length
+                const recommendedIndex = getRecommendedSizeIndex(
+                    footLengthCm,
+
+
+                    gender.toLowerCase() === 'male'
+                );
+
+                setSizeIndex(recommendedIndex);
+            }
+        } catch (error) {
+            console.error('Error fetching measurements:', error);
+            showAlert('Error', 'Failed to fetch your measurements. Using default size.', 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.uid, gender, getRecommendedSizeIndex]);
+
+    useEffect(() => {
+        fetchLatestMeasurements();
+    }, [fetchLatestMeasurements]);
+
     // Functions to handle size changes
     const incrementSize = () => {
+        // console.log(sizeIndex)
         if (sizeIndex < sizeChart[selectedCountry].length - 1) {
             setSizeIndex(sizeIndex + 1);
         }
@@ -96,6 +177,8 @@ const ShoesSize = () => {
             type,
         });
     };
+
+
 
     const hideAlert = () => {
         setAlertModal(prev => ({ ...prev, visible: false }));
@@ -126,9 +209,11 @@ const ShoesSize = () => {
             showAlert('Error', 'Failed to save your shoe size. Please try again.', 'error');
         } finally {
             setLoading(false);
- 
+
         }
     };
+
+    console.log(sizeIndex)
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -149,10 +234,9 @@ const ShoesSize = () => {
                     <View style={styles.headerSection}>
                         <Text style={styles.headerTitle}>What's your shoe size?</Text>
                         <Text style={styles.headerSubtitle}>
-                            Select your country standard and size
+                            {loading ? 'Loading your recommended size...' : 'Select your country standard and size'}
                         </Text>
                     </View>
-
 
                     {/* Size selector */}
                     <View style={styles.sizeSelector}>

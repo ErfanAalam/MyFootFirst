@@ -218,7 +218,7 @@ const CartScreen = () => {
       // Store insole products in users collection
       if (insoleProducts.length > 0) {
         const insoleOrderData = {
-          orderId: userData.id, // Use userId as orderId for insoles
+          orderId, // Use userId as orderId for insoles
           customerName: userData.firstName || 'Anonymous',
           dateOfOrder: Date.now(),
           products: insoleProducts.map(item => ({

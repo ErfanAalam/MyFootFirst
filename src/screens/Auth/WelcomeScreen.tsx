@@ -32,7 +32,7 @@ const banners = [
   },
   {
     id: '3',
-    image: require('../../assets/images/banner3.jpeg'),
+    image: require('../../assets/images/banner2.jpg'),
     title: 'Designed For You, Engineered for Life',
   },
 ];
