@@ -28,8 +28,8 @@ const AuthStack = () => (
       <Stack.Screen name="Welcome" component={WelcomeScreen} options={{headerShown:false}} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
-      <Stack.Screen name="SignupDetails" component={SignupDetails} />
-      <Stack.Screen name="Goals" component={Goals} />
+      <Stack.Screen name="SignupDetails" component={SignupDetails} options={{title:"Sign Up Details"}} />
+      <Stack.Screen name="Goals" component={Goals} options={{title:"Activity Level"}} />
       <Stack.Screen name="ForgotPasswordScreen" component={ForgotPasswordScreen} options={{title:"Forget Password"}} />
     </Stack.Navigator>
   </SafeAreaView>

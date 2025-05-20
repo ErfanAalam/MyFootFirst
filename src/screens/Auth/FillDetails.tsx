@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
   Keyboard,
+  Modal,
 } from 'react-native';
 import CountryPicker from 'react-native-country-picker-modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -43,6 +44,9 @@ const FillDetails = () => {
   const [countryCode, setCountryCode] = useState();
   const [callingCode, setCallingCode] = useState();
   const [country, setCountry] = useState(null);
+  const [datePickerStep, setDatePickerStep] = useState('year'); // 'year', 'month', 'day'
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   const [alertModal, setAlertModal] = useState({
     visible: false,
@@ -87,11 +91,150 @@ const FillDetails = () => {
     });
   };
 
+  const showDatePickerModal = () => {
+    Keyboard.dismiss();
+    if (Platform.OS === 'ios') {
+      setDatePickerStep('year');
+      setSelectedYear(null);
+      setSelectedMonth(null);
+    }
+    setShowDatePicker(true);
+  };
+
   const handleDateConfirm = (date: Date) => {
     setSelectedDate(date);
     const formattedDate = date.toLocaleDateString('en-GB');
     setDob(formattedDate);
     setShowDatePicker(false);
+  };
+
+  // For iOS step by step approach
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = currentYear; i >= currentYear - 100; i--) {
+      years.push(i);
+    }
+    return years;
+  };
+
+  const generateMonthOptions = () => {
+    return [
+      { value: 0, label: 'January' },
+      { value: 1, label: 'February' },
+      { value: 2, label: 'March' },
+      { value: 3, label: 'April' },
+      { value: 4, label: 'May' },
+      { value: 5, label: 'June' },
+      { value: 6, label: 'July' },
+      { value: 7, label: 'August' },
+      { value: 8, label: 'September' },
+      { value: 9, label: 'October' },
+      { value: 10, label: 'November' },
+      { value: 11, label: 'December' },
+    ];
+  };
+
+  const generateDayOptions = () => {
+    if (!selectedYear || selectedMonth === null) return [];
+
+    const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  };
+
+  const handleYearSelect = (year: number) => {
+    setSelectedYear(year);
+    setDatePickerStep('month');
+  };
+
+  const handleMonthSelect = (month: number) => {
+    setSelectedMonth(month);
+    setDatePickerStep('day');
+  };
+
+  const handleDaySelect = (day: number) => {
+    if (selectedYear !== null && selectedMonth !== null) {
+      const date = new Date(selectedYear, selectedMonth, day);
+      handleDateConfirm(date);
+    }
+  };
+
+  const renderDatePickerContent = () => {
+    if (Platform.OS === 'android') {
+      return null; // Android uses the native date picker
+    } else if (Platform.OS === 'ios') {
+      // Step-by-step approach for iOS
+      if (datePickerStep === 'year') {
+        return (
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Year</Text>
+            <View style={styles.optionsContainer}>
+              {generateYearOptions().map((year) => (
+                <TouchableOpacity
+                  key={year}
+                  style={styles.optionButton}
+                  onPress={() => handleYearSelect(year)}
+                >
+                  <Text style={styles.optionText}>{year}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowDatePicker(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      } else if (datePickerStep === 'month') {
+        return (
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Month</Text>
+            <View style={styles.optionsContainer}>
+              {generateMonthOptions().map((month) => (
+                <TouchableOpacity
+                  key={month.value}
+                  style={styles.optionButton}
+                  onPress={() => handleMonthSelect(month.value)}
+                >
+                  <Text style={styles.optionText}>{month.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => setDatePickerStep('year')}
+            >
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      } else if (datePickerStep === 'day') {
+        return (
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Day</Text>
+            <View style={styles.optionsContainer}>
+              {generateDayOptions().map((day) => (
+                <TouchableOpacity
+                  key={day}
+                  style={styles.optionButton}
+                  onPress={() => handleDaySelect(day)}
+                >
+                  <Text style={styles.optionText}>{day}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => setDatePickerStep('month')}
+            >
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+    }
   };
 
   return (
@@ -141,7 +284,7 @@ const FillDetails = () => {
         </View>
 
         <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
+          onPress={showDatePickerModal}
           style={styles.dateInput}
         >
           <Text style={dob ? styles.dateText : styles.datePlaceholder}>
@@ -149,19 +292,33 @@ const FillDetails = () => {
           </Text>
         </TouchableOpacity>
 
-        {showDatePicker && (
-          <DateTimePicker
-            value={selectedDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, date) => {
-              setShowDatePicker(false);
-              if (date && event.type !== 'dismissed') {
-                handleDateConfirm(date);
-              }
-            }}
-            maximumDate={new Date()}
-          />
+        {/* Date Picker Modal */}
+        {Platform.OS === 'android' ? (
+          showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="spinner"
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date && event.type !== 'dismissed') {
+                  handleDateConfirm(date);
+                }
+              }}
+              maximumDate={new Date()}
+            />
+          )
+        ) : (
+          <Modal
+            visible={showDatePicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowDatePicker(false)}
+          >
+            <View style={styles.modalOverlay}>
+              {renderDatePickerContent()}
+            </View>
+          </Modal>
         )}
 
         <TouchableOpacity style={styles.submitButton} onPress={validateAndProceed}>
@@ -259,6 +416,60 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+    color: '#007bff',
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  optionButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    margin: 5,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  optionText: {
+    fontSize: 16,
+  },
+  backButton: {
+    marginTop: 15,
+    padding: 10,
+    alignSelf: 'center',
+  },
+  backButtonText: {
+    color: '#007bff',
+    fontSize: 16,
+  },
+  cancelButton: {
+    marginTop: 15,
+    padding: 10,
+    alignSelf: 'center',
+  },
+  cancelButtonText: {
+    color: 'red',
+    fontSize: 16,
   },
 });
 

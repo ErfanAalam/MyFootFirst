@@ -196,7 +196,7 @@ const CartScreen = () => {
       setLoading(false);
     }
   };
-  console.log(items)
+  // console.log(items);
 
   // Improved order storage function
   const storeOrderData = useCallback(async () => {
@@ -211,9 +211,7 @@ const CartScreen = () => {
       const insoleProducts = items.filter(item =>
         ['insole-stability', 'insole-comfort', 'insole-sport'].includes(item.id)
       );
-      const otherProducts = items.filter(item =>
-        ['insole-stability', 'insole-comfort', 'insole-sport'].includes(item.id)
-      );
+      const otherProducts = items;
 
       // Store insole products in users collection
       if (insoleProducts.length > 0) {

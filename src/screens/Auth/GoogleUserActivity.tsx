@@ -281,30 +281,7 @@ const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) =
                     </TouchableOpacity>
                 ))}
 
-                <TouchableOpacity
-                    onPress={showDatePickerModal}
-                    style={styles.dateInput}
-                >
-                    <Text style={formattedDob ? styles.dateText : styles.datePlaceholder}>
-                        {formattedDob || 'Select Date of Birth*'}
-                    </Text>
-                </TouchableOpacity>
 
-                {/* Date Picker Modal */}
-                <Modal
-                    visible={showDatePicker}
-                    transparent={true}
-                    animationType="slide"
-                    onRequestClose={() => setShowDatePicker(false)}
-                >
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setShowDatePicker(false)}
-                    >
-                        {renderDatePickerContent()}
-                    </TouchableOpacity>
-                </Modal>
             </View>
 
             <View style={styles.footer}>

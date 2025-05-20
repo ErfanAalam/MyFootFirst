@@ -59,20 +59,51 @@ const SignupScreen = () => {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
       // Get the user's tokens
-      await GoogleSignin.signIn();
+      const userInfo = await GoogleSignin.signIn();
       const { accessToken } = await GoogleSignin.getTokens();
 
       // Create a Google credential with the access token
       const googleCredential = GoogleAuthProvider.credential(undefined, accessToken);
 
       // Sign-in the user with the credential
-       await getAuth().signInWithCredential(googleCredential);
+      const userCredential = await getAuth().signInWithCredential(googleCredential);
+
+      // Check if user exists in Firestore
+      // const userDoc = await firestore()
+      //   .collection('users')
+      //   .doc(userCredential.user.uid)
+      //   .get();
+
+      // if (!userDoc.exists) {
+      //   // If user doesn't exist in Firestore, create a new user document
+      //   await firestore().collection('users').doc(userCredential.user.uid).set({
+      //     email: userCredential.user.email,
+      //     displayName: userCredential.user.displayName || userInfo.user?.name,
+      //     photoURL: userCredential.user.photoURL || userInfo.user?.photo,
+      //     createdAt: firestore.FieldValue.serverTimestamp(),
+      //     provider: 'google',
+      //   });
+        
+      //   // Navigate to signup details for new users
+      //   navigation.navigate('SignupDetails');
+      // }
 
     } catch (error: any) {
+      console.error('Google Sign-In Error:', error);
+      
       if (error.code === 'auth/account-exists-with-different-credential') {
         showAlert('Account Exists', 'An account already exists with this email using a different sign-in method.', 'error');
+      } else if (error.code === 'auth/network-request-failed') {
+        showAlert('Network Error', 'Please check your internet connection and try again.', 'error');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        // User cancelled the sign-in flow
+        return;
       } else {
-        showAlert('Sign-In Error', 'Failed to sign in with Google. Please try again.', 'error');
+        showAlert(
+          'Sign-In Error', 
+          `Failed to sign in with Google. Error: ${error.message || 'Unknown error'}. Please try again.`,
+          'error'
+        );
       }
     } finally {
       setLoading(false);
@@ -87,7 +118,7 @@ const SignupScreen = () => {
 
     try {
       setLoading(true);
-      
+
       // Start the sign-in request
       const appleAuthResponse = await appleAuth.performRequest({
         requestedOperation: appleAuth.Operation.LOGIN,
@@ -110,7 +141,7 @@ const SignupScreen = () => {
       if (appleAuthResponse.fullName) {
         const { givenName, familyName } = appleAuthResponse.fullName;
         const displayName = `${givenName || ''} ${familyName || ''}`.trim();
-        
+
         if (displayName) {
           await userCredential.user.updateProfile({
             displayName,
@@ -159,8 +190,8 @@ const SignupScreen = () => {
 
         <Text style={styles.orText}>OR</Text>
 
-        <TouchableOpacity 
-          style={[styles.socialButton, loading && styles.disabledButton]} 
+        <TouchableOpacity
+          style={[styles.socialButton, loading && styles.disabledButton]}
           onPress={handleGoogleSignIn}
           disabled={loading}
         >
@@ -173,7 +204,7 @@ const SignupScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.socialButton, loading && styles.disabledButton]}
           onPress={handleAppleSignIn}
           disabled={loading}

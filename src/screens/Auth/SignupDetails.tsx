@@ -933,7 +933,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   privacyBulletPoint: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     marginBottom: 8,
     paddingLeft: 8,
   },

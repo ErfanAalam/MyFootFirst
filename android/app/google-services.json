@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "503667392757-o9uv9mhbemkql1tfhil884ahau0kj107.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.myfootfirst",
+            "certificate_hash": "1d2302da9be36366a551c560772c69a28f7c05a0"
+          }
+        },
+        {
           "client_id": "503667392757-uf6bvvjsgfpiet5tv1rslvcchrqtikjs.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

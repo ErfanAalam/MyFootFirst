@@ -55,37 +55,18 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const RootNavigator = () => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCheckingProfile, setIsCheckingProfile] = useState(false);
-  const { hasProfile, setHasProfile } = useUser() as UserContextType;
+  const { hasProfile, setHasProfile } = useUser();
 
+  // Handle initial auth state
   useEffect(() => {
     const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setIsLoggedIn(true);
-        setIsCheckingProfile(true);
-
-        // Add 10 second delay before checking profile
-        await new Promise(resolve => setTimeout(resolve, 4000));
-
-        // Check if user has completed profile
-        try {
-          const userDoc = await firestore()
-            .collection('users')
-            .doc(user.uid)
-            .get();
-
-          setHasProfile(userDoc.exists);
-        } catch (error) {
-          console.error('Error checking user profile:', error);
-          setHasProfile(false);
-        } finally {
-          setIsCheckingProfile(false);
-        }
+        setHasProfile(true); // Initially set to true when logged in
       } else {
         setIsLoggedIn(false);
         setHasProfile(null);
-        setIsCheckingProfile(false);
       }
     });
 
@@ -100,8 +81,40 @@ const RootNavigator = () => {
     };
   }, [setHasProfile]);
 
-  // if (isLoading || isCheckingProfile) {
-    if (isLoading) {
+  // Separate effect to check profile after reaching home screen
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (isLoggedIn && hasProfile === true) {
+      // Wait 10 seconds after login before checking profile
+      timeoutId = setTimeout(async () => {
+        try {
+          const auth = getAuth();
+          const user = auth.currentUser;
+
+          if (user) {
+            const userDoc = await firestore()
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+            setHasProfile(userDoc.exists);
+          }
+        } catch (error) {
+          console.error('Error checking user profile:', error);
+          setHasProfile(false);
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isLoggedIn, hasProfile, setHasProfile]);
+
+  if (isLoading) {
     return <SplashScreen />;
   }
 
@@ -120,7 +133,7 @@ const RootNavigator = () => {
             {!hasProfile ? (
               // Show profile completion screens for Google login users
               <>
-                <Stack.Screen name="FillDetails" component={FillDetails} />
+                <Stack.Screen name="FillDetails" component={FillDetails} options={{ headerShown: true,headerTitleAlign: 'center', title:"Submit Your Details" }} />
                 <Stack.Screen name="GoogleUserActivity" component={GoogleUserActivity} />
               </>
             ) : (

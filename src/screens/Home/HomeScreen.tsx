@@ -46,13 +46,13 @@ const HomeScreen = () => {
       id: '1',
       price: '$49.99',
       title: 'Insole 1',
-      image: require('../../assets/images/banner1.jpg'),
+      image: require('../../assets/images/banner1.png'),
     },
     {
       id: '2',
       price: '$59.99',
       title: 'Insole 2',
-      image: require('../../assets/images/banner2.webp'),
+      image: require('../../assets/images/banner2.jpg'),
     },
     {
       id: '3',
@@ -197,8 +197,8 @@ const HomeScreen = () => {
 
           <TouchableOpacity
             style={styles.showAllButton}
-            // onPress={() => navigation.navigate("Ecommerce")}
-            onPress={() => navigation.navigate("InsoleQuestions")}
+            onPress={() => navigation.navigate("Ecommerce")}
+            // onPress={() => navigation.navigate("InsoleQuestions")}
           >
             <Text style={styles.showAllButtonText}>Show All</Text>
           </TouchableOpacity>
