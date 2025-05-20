@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Alert,
 } from 'react-native';
 import { Button, IconButton } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +14,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '../../contexts/UserContext';
 import CustomAlertModal from '../../Components/CustomAlertModal';
-import firestore from '@react-native-firebase/firestore';
 
 type RootStackParamList = {
   InsoleQuestions: undefined;
@@ -80,7 +78,7 @@ const calculateAgeGroup = (dob: string): string => {
 
 const InsoleQuestions = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { userData, user } = useUser();
+  const { userData } = useUser();
   const [answers, setAnswers] = useState<AnswerType>({
     ageGroup: '',
     activityLevel: '',
@@ -182,19 +180,7 @@ const InsoleQuestions = () => {
         footPosture: answers.footPosture,
         archType: answers.archType,
         medicalCondition: answers.medicalCondition,
-        timestamp: firestore.FieldValue.serverTimestamp(),
       };
-
-      // Save to Firestore
-      if (user?.uid) {
-        const userRef = firestore().collection('users').doc(user.uid);
-        await userRef.set({ Questionnaire: answersToSave }, { merge: true });
-        console.log('Answers saved to Firestore successfully');
-      } else {
-        console.error('No user ID available');
-        showAlert('Error', 'Unable to save your answers. Please try again.', 'error');
-        return;
-      }
 
       navigation.navigate('ShoesSize', {
         answers: answersToSave,
@@ -202,8 +188,8 @@ const InsoleQuestions = () => {
         recommendedInsole: recommended
       });
     } catch (error) {
-      console.error('Error saving answers to Firestore:', error);
-      showAlert('Error', 'Failed to save your answers. Please try again.', 'error');
+      console.error('Error calculating recommendation:', error);
+      showAlert('Error', 'Failed to calculate recommendation. Please try again.', 'error');
     }
   };
 

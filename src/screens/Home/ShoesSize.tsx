@@ -5,9 +5,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    Alert,
-    Platform,
-    StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconButton } from 'react-native-paper';
@@ -136,8 +133,6 @@ const ShoesSize = () => {
                 // Get recommended size index based on foot length
                 const recommendedIndex = getRecommendedSizeIndex(
                     footLengthCm,
-
-
                     gender.toLowerCase() === 'male'
                 );
 
@@ -178,38 +173,50 @@ const ShoesSize = () => {
         });
     };
 
-
-
     const hideAlert = () => {
         setAlertModal(prev => ({ ...prev, visible: false }));
     };
 
     const handleSaveSize = async () => {
         try {
-            //   setLoading(true);
+            setLoading(true);
 
-            // Prepare data to save - just the selected country and size
-            const shoeSize = {
-                country: selectedCountry,
-                size: sizeChart[selectedCountry][sizeIndex]
+            // Prepare data to save - combine questionnaire answers and shoe size
+            const dataToSave = {
+                Questionnaire: {
+                    ...answers,
+                    timestamp: firestore.FieldValue.serverTimestamp(),
+                },
+                ShoeSize: {
+                    country: selectedCountry,
+                    size: sizeChart[selectedCountry][sizeIndex],
+                    timestamp: firestore.FieldValue.serverTimestamp(),
+                }
             };
 
-            console.log(shoeSize);
-            console.log(answers);
-            // Only proceed if user is authenticated
-            navigation.navigate('InsoleRecommendation', {
-                recommendedInsole: recommendedInsole,
-                shoeSize: shoeSize,
-            });
+            // Save to Firestore
+            if (user?.uid) {
+                const userRef = firestore().collection('users').doc(user.uid);
+                await userRef.set(dataToSave, { merge: true });
+                console.log('Data saved to Firestore successfully');
 
-            // Navigate to recommendation screen
-
+                // Navigate to recommendation screen
+                navigation.navigate('InsoleRecommendation', {
+                    recommendedInsole: recommendedInsole,
+                    shoeSize: {
+                        country: selectedCountry,
+                        size: sizeChart[selectedCountry][sizeIndex]
+                    },
+                });
+            } else {
+                console.error('No user ID available');
+                showAlert('Error', 'Unable to save your data. Please try again.', 'error');
+            }
         } catch (error) {
-            console.error('Error saving shoe size:', error);
-            showAlert('Error', 'Failed to save your shoe size. Please try again.', 'error');
+            console.error('Error saving data:', error);
+            showAlert('Error', 'Failed to save your data. Please try again.', 'error');
         } finally {
             setLoading(false);
-
         }
     };
 
