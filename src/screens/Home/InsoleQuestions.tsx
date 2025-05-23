@@ -17,11 +17,11 @@ import CustomAlertModal from '../../Components/CustomAlertModal';
 
 type RootStackParamList = {
   InsoleQuestions: undefined;
-  InsoleRecommendation: { recommendedInsole: 'Sport' | 'Comfort' | 'Stability' };
+  InsoleRecommendation: { recommendedInsole: 'Sport' | 'Active' | 'Comfort' };
   ShoesSize: {
     answers: any,
     gender: string,
-    recommendedInsole: 'Sport' | 'Comfort' | 'Stability'
+    recommendedInsole: 'Sport' | 'Active' | 'Comfort'
   };
 };
 
@@ -39,12 +39,12 @@ type AnswerType = {
 
 type ScoreType = {
   Sport: number;
+  Active: number;
   Comfort: number;
-  Stability: number;
 };
 
 const options = {
-  ageGroup: ['18-40', '41-60', '60+'],
+  ageGroup: ['Under 18', '18-30', '31-50', '50+'],
   activityLevel: ['Sedentary', 'Moderate', 'Active'],
   painLocation: ['Heel', 'Arch', 'Forefoot', 'Knee', 'Lower Back'],
   painFrequency: ['Sometimes', 'Regularly', 'Permanently'],
@@ -70,9 +70,10 @@ const calculateAgeGroup = (dob: string): string => {
     age--;
   }
 
-  if (age >= 18 && age <= 40) return '18-40';
-  if (age >= 41 && age <= 60) return '41-60';
-  if (age > 60) return '60+';
+  if (age < 18) return 'Under 18';
+  if (age >= 18 && age <= 30) return '18-30';
+  if (age >= 31 && age <= 50) return '31-50';
+  if (age > 50) return '50+';
   return '';
 };
 
@@ -141,32 +142,33 @@ const InsoleQuestions = () => {
     }
 
     try {
-      const scores: ScoreType = { Sport: 0, Comfort: 0, Stability: 0 };
+      const scores: ScoreType = { Sport: 0, Active: 0, Comfort: 0 };
 
-      if (answers.ageGroup === '18-40') scores.Sport += 25;
-      else if (answers.ageGroup === '41-60') scores.Comfort += 25;
-      else if (answers.ageGroup === '60+') scores.Stability += 25;
+      // Age group scoring - Under 18 and 18-30 have same weightage
+      if (answers.ageGroup === 'Under 18' || answers.ageGroup === '18-30') scores.Sport += 100;
+      else if (answers.ageGroup === '31-50') scores.Active += 100;
+      else if (answers.ageGroup === '50+') scores.Comfort += 100;
 
-      if (answers.activityLevel === 'Active') scores.Sport += 25;
-      else if (answers.activityLevel === 'Moderate') scores.Comfort += 25;
-      else if (answers.activityLevel === 'Sedentary') scores.Stability += 25;
+      if (answers.activityLevel === 'Active') scores.Sport += 0;
+      else if (answers.activityLevel === 'Moderate') scores.Active += 0;
+      else if (answers.activityLevel === 'Sedentary') scores.Comfort += 0;
 
-      if (answers.painLocation === 'Forefoot') scores.Sport += 20;
-      else if (['Heel', 'Lower Back', 'Knee'].includes(answers.painLocation)) scores.Stability += 20;
-      else scores.Comfort += 20;
+      if (answers.painLocation === 'Forefoot') scores.Sport += 20
+      else if (['Heel', 'Lower Back', 'Knee'].includes(answers.painLocation)) scores.Comfort += 0;
+      else scores.Active += 0;
 
-      if (answers.painFrequency === 'Sometimes') scores.Comfort += 15;
-      else if (answers.painFrequency === 'Regularly') scores.Comfort += 15;
-      else if (answers.painFrequency === 'Permanently') scores.Stability += 15;
-      else scores.Sport += 15;
+      if (answers.painFrequency === 'Sometimes') scores.Active += 0;
+      else if (answers.painFrequency === 'Regularly') scores.Active += 0;
+      else if (answers.painFrequency === 'Permanently') scores.Comfort += 0;
+      else scores.Sport += 0;
 
-      if (answers.footPosture === 'Rolling Inwards') scores.Stability += 10;
-      else if (answers.footPosture === 'Rolling Outwards') scores.Comfort += 10;
-      else if (answers.footPosture === 'Normal') scores.Sport += 10;
+      if (answers.footPosture === 'Rolling Inwards') scores.Comfort += 0;
+      else if (answers.footPosture === 'Rolling Outwards') scores.Active += 0;
+      else if (answers.footPosture === 'Normal') scores.Sport += 0;
 
-      if (answers.archType === 'Flat') scores.Stability += 5;
-      else if (answers.archType === 'High Arch') scores.Sport += 5;
-      else scores.Comfort += 5;
+      if (answers.archType === 'Flat') scores.Comfort += 0;
+      else if (answers.archType === 'High Arch') scores.Sport += 0;
+      else scores.Active += 0;
 
       const recommended = Object.keys(scores).reduce((a, b) =>
         scores[a as keyof ScoreType] > scores[b as keyof ScoreType] ? a : b

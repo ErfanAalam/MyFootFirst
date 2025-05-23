@@ -18,10 +18,10 @@ type RootStackParamList = {
     ShoesSize: {
         answers: any;
         gender: string;
-        recommendedInsole: 'Sport' | 'Comfort' | 'Stability';
+        recommendedInsole: 'Sport' | 'Active' | 'Comfort';
     };
     InsoleRecommendation: {
-        recommendedInsole: 'Sport' | 'Comfort' | 'Stability',
+        recommendedInsole: 'Sport' | 'Active' | 'Comfort',
         shoeSize: {
             country: string;
             size: number;
@@ -220,7 +220,6 @@ const ShoesSize = () => {
         }
     };
 
-    console.log(sizeIndex)
 
     return (
         <SafeAreaView style={styles.safeArea}>

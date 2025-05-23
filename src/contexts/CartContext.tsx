@@ -7,13 +7,15 @@ export interface CartItem {
   id: string;
   title: string;
   price: number;
-  selectedImage: string;
-  quantity: number;
   newPrice: string;
-  priceValue: number;
+  discountedPrice?: string;
+  discountedPriceValue?: number;
   image?: string;
+  selectedImage?: string;
+  color?: string;
   size?: string;
-  color?:string,
+  quantity: number;
+  priceValue: number;
 }
 
 // Define context type
@@ -94,16 +96,19 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await updateQuantity(product.id, newQuantity);
       } else {
         // Otherwise add as new item
-        const cartItem = {
+        const cartItem: CartItem = {
           id: product.id,
           title: product.title,
           price: product.price,
           newPrice: product.newPrice,
+          ...(product.discountedPrice && { discountedPrice: product.discountedPrice }),
+          ...(product.discountedPriceValue && { discountedPriceValue: product.discountedPriceValue }),
           image: product.selectedImage,
           size: product.selectedSize,
           quantity: quantity,
-          color:product.selectedColor,
+          color: product.selectedColor,
           priceValue: product.priceValue,
+          ...(product.priceInEuro && {priceInEuro:product.priceInEuro}),
         };
 
         // Get current cart data first

@@ -12,6 +12,8 @@ interface Product {
   title: string;
   price: number;
   newPrice: string;
+  discountedPrice?: string;
+  discountedPriceValue?: number;
   image: string;
   description: string;
   colors: string[];
@@ -71,7 +73,6 @@ const getExchangeRate = async (toCurrency: string): Promise<number> => {
   }
 };
 
-
 const getCurrencySymbol = (currencyCode: string): string => {
   return (0).toLocaleString(undefined, {
     style: 'currency',
@@ -104,7 +105,16 @@ const ProductCard = ({ item, onPress }: ProductCardProps) => {
         )}
       </View>
       <Text style={styles.productTitle}>{item.title}</Text>
-      <Text style={styles.productPrice}>{item.newPrice}</Text>
+      <View style={styles.priceContainer}>
+        {item.discountedPrice ? (
+          <>
+            <Text style={styles.originalPrice}>{item.newPrice}</Text>
+            <Text style={styles.discountedPrice}>{item.discountedPrice}</Text>
+          </>
+        ) : (
+          <Text style={styles.regularPrice}>{item.newPrice}</Text>
+        )}
+      </View>
     </TouchableOpacity>
   );
 };
@@ -152,9 +162,19 @@ const EcommerceScreen = () => {
       const updatedProducts = querySnapshot.docs.map((doc: any) => {
         const data = doc.data();
         const priceInEUR = data.price;
+        const discountedPriceInEUR = data.discountedPrice;
 
         const convertedPrice = (priceInEUR * exchangeRate).toFixed(2);
         const priceWithSymbol = `${getCurrencySymbol(currencyCode)} ${convertedPrice}`;
+
+        let discountedPriceWithSymbol = undefined;
+        let discountedPriceValue = undefined;
+
+        if (discountedPriceInEUR) {
+          const convertedDiscountedPrice = (discountedPriceInEUR * exchangeRate).toFixed(2);
+          discountedPriceWithSymbol = `${getCurrencySymbol(currencyCode)} ${convertedDiscountedPrice}`;
+          discountedPriceValue = +convertedDiscountedPrice;
+        }
 
         return {
           id: doc.id,
@@ -162,6 +182,8 @@ const EcommerceScreen = () => {
           price: priceInEUR,
           newPrice: priceWithSymbol,
           priceValue: +convertedPrice,
+          discountedPrice: discountedPriceWithSymbol,
+          discountedPriceValue: discountedPriceValue,
           currency: currencyCode,
         };
       });
@@ -289,10 +311,31 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginVertical: 4,
   },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   productPrice: {
     fontSize: 16,
     fontWeight: '700',
+    color: '#333',
+  },
+  originalPrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FF0000',
+    textDecorationLine: 'line-through',
+  },
+  discountedPrice: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#00843D',
+  },
+  regularPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
   },
   cartCounter: {
     color: '#fff',

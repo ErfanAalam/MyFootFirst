@@ -112,7 +112,7 @@ const HomeScreen = () => {
           painPoints: painPoints,
         });
 
-      navigation.navigate("FootScanScreen");
+      navigation.navigate('FootScanScreen');
     } catch (error) {
       showAlert('Error', 'Failed to save pain points', 'error');
     }
@@ -197,8 +197,8 @@ const HomeScreen = () => {
 
           <TouchableOpacity
             style={styles.showAllButton}
-            onPress={() => navigation.navigate("Ecommerce")}
-            // onPress={() => navigation.navigate("InsoleQuestions")}
+            // onPress={() => navigation.navigate("Ecommerce")}
+            onPress={() => navigation.navigate("InsoleQuestions")}
           >
             <Text style={styles.showAllButtonText}>Show All</Text>
           </TouchableOpacity>

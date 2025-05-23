@@ -83,14 +83,14 @@ const SignupScreen = () => {
       //     createdAt: firestore.FieldValue.serverTimestamp(),
       //     provider: 'google',
       //   });
-        
+
       //   // Navigate to signup details for new users
       //   navigation.navigate('SignupDetails');
       // }
 
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
-      
+
       if (error.code === 'auth/account-exists-with-different-credential') {
         showAlert('Account Exists', 'An account already exists with this email using a different sign-in method.', 'error');
       } else if (error.code === 'auth/network-request-failed') {
@@ -100,7 +100,7 @@ const SignupScreen = () => {
         return;
       } else {
         showAlert(
-          'Sign-In Error', 
+          'Sign-In Error',
           `Failed to sign in with Google. Error: ${error.message || 'Unknown error'}. Please try again.`,
           'error'
         );

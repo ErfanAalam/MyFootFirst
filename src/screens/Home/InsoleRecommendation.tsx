@@ -1,13 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useWindowDimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, useWindowDimensions, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, IconButton } from 'react-native-paper';
+import { IconButton, Checkbox, Portal, Dialog } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCart } from '../../contexts/CartContext';
 import firestore from '@react-native-firebase/firestore';
+import { useUser } from '../../contexts/UserContext';
 
-type InsoleType = 'Sport' | 'Comfort' | 'Stability';
+type InsoleType = 'Sport' | 'Active' | 'Comfort';
 
 type RootStackParamList = {
   InsoleQuestions: undefined;
@@ -20,16 +21,19 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'InsoleRecom
 
 interface InsolePricing {
   Sport: number;
+  Active: number;
   Comfort: number;
-  Stability: number;
   Shipping: number;
   currency: string;
+  SportDiscount?: number;
+  ActiveDiscount?: number;
+  ComfortDiscount?: number;
 }
 
 const insoleData = {
   Sport: {
     id: 'insole-sport',
-    name: 'SPORT Insole',
+    name: 'Sport Insole',
     image: require('../../assets/images/banner1.png'),
     features: [
       'Lightweight and flexible for active movement',
@@ -39,24 +43,24 @@ const insoleData = {
       'Breathable design keeps feet cool and dry',
     ],
   },
-  Comfort: {
-    id: 'insole-comfort',
-    name: 'COMFORT Insole',
+  Active: {
+    id: 'insole-active',
+    name: 'Active Insole',
     image: require('../../assets/images/banner2.jpg'),
     features: [
-      'All-day cushioning for casual and work shoes',
-      'Great moderate activity',
-      'Reduces pressure on forefoot and heel',
-      'Soft foam base for maximum shock absorption',
-      'Ideal for standing or walking for long hours',
+      'Perfect balance of support and flexibility',
+      'Great for moderate to high activity levels',
+      'Enhanced arch support for better alignment',
+      'Medium cushioning for all-day comfort',
+      'Ideal for walking, light running, and daily activities',
     ],
   },
-  Stability: {
-    id: 'insole-stability',
-    name: 'STABILITY Insole',
+  Comfort: {
+    id: 'insole-comfort',
+    name: 'Comfort Insole',
     image: require('../../assets/images/banner3.jpeg'),
     features: [
-      'Firm support for feet',
+      'Maximum cushioning for all-day comfort',
       'Designed to ease chronic heel, knee, or back pain',
       'Extra arch support to improve alignment',
       'Rigid heel cup for motion control',
@@ -73,13 +77,19 @@ const InsoleRecommendation = () => {
   const { addToCart } = useCart();
   const [pricing, setPricing] = useState<InsolePricing | null>(null);
   const [loading, setLoading] = useState(true);
+  const { userData } = useUser();
+  const [isDressInsole, setIsDressInsole] = useState(false);
+  const [shoeType, setShoeType] = useState('');
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showShoeTypeError, setShowShoeTypeError] = useState(false);
+  const [priceInEuro, setPriceInEuro] = useState(0);
 
   // Get the recommended insole type from navigation params
   const recommendedInsole = route.params.recommendedInsole;
   const shoeSize = route.params.shoeSize;
-
+  // console.log(recommendedInsole)
   // Determine the card order with recommended in center
-  const insoleTypes: InsoleType[] = ['Sport', 'Comfort', 'Stability'];
+  const insoleTypes: InsoleType[] = ['Sport', 'Active', 'Comfort'];
 
   // Reorder types to ensure recommended is in the middle
   const orderedTypes = [...insoleTypes];
@@ -93,6 +103,41 @@ const InsoleRecommendation = () => {
   const CARD_WIDTH = width * 0.8;
   const SPACING = width * 0.03;
 
+  const getCurrencyCode = async (countryName: string): Promise<string> => {
+    try {
+      const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
+      const data = await res.json();
+
+      if (Array.isArray(data) && data.length > 0 && data[0].currencies) {
+        return Object.keys(data[0].currencies)[0];
+      }
+
+      throw new Error('Currency data not found');
+    } catch (err) {
+      console.error('Failed to fetch currency code:', err);
+      return 'EUR';
+    }
+  };
+  // ${toCurrency}
+
+  const getExchangeRate = async (fromCurrency: string): Promise<number> => {
+    try {
+      // Convert from target currency to EUR
+      const res = await fetch(`https://api.frankfurter.app/latest?from=${fromCurrency}&to=EUR`);
+      const data = await res.json();
+
+      if (!data || !data.rates || !data.rates.EUR) {
+        throw new Error('Invalid exchange rate response');
+      }
+
+      // Return the rate to convert from target currency to EUR
+      return data.rates.EUR;
+    } catch (err) {
+      console.error('Failed to fetch exchange rate:', err);
+      return 1; // fallback to 1:1 rate if API fails
+    }
+  };
+
   // Fetch pricing from Firestore
   useEffect(() => {
     const fetchPricing = async () => {
@@ -100,7 +145,7 @@ const InsoleRecommendation = () => {
         // Try to get pricing for the user's country
         const countryDoc = await firestore()
           .collection('InsolePricing')
-          .doc(shoeSize.country)
+          .doc(userData?.country)
           .get();
 
         if (countryDoc.exists) {
@@ -124,7 +169,7 @@ const InsoleRecommendation = () => {
     };
 
     fetchPricing();
-  }, [shoeSize.country]);
+  }, [userData?.country]);
 
   useEffect(() => {
     // Scroll to the middle card (recommended) on initial render
@@ -133,33 +178,79 @@ const InsoleRecommendation = () => {
         x: (CARD_WIDTH + SPACING) * 1,
         animated: false,
       });
-    }, 100);
+    }, 200);
   }, [CARD_WIDTH, SPACING]);
 
   // Function to handle adding insole to cart
-  const handleAddToCart = (insoleType: InsoleType) => {
+  const handleAddToCart = async (insoleType: InsoleType) => {
     if (!pricing) return;
 
     const insole = insoleData[insoleType];
-    const price = pricing[insoleType];
+    const originalPrice = pricing[insoleType] + pricing.Shipping;
+    const discountKey = `${insoleType}Discount` as keyof InsolePricing;
+    const discount = pricing[discountKey] as number | undefined;
+    const finalPrice = discount ? originalPrice - (originalPrice * discount / 100) : originalPrice;
+    let currencyCode = 'EUR'; // Default to EUR
+    const allowedCurrencies = ['USD', 'EUR', 'INR', 'GBP'];
 
-    // Format the insole data as expected by the cart context
-    const product = {
-      id: `insole-${insoleType.toLowerCase()}`,
-      title: insole.name,
-      price: price,
-      newPrice: pricing.currency + price,
-      selectedImage: Image.resolveAssetSource(insole.image).uri,
-      description: insole.features.join(' | '),
-      selectedSize: shoeSize.country + ' ' + shoeSize.size,
-      selectedColor: 'NoOptions',
-      quantity: 1,
-      priceValue: price,
-    };
+    try {
+      if (userData?.country) {
+        const fetchedCurrencyCode = await getCurrencyCode(userData.country);
+        if (allowedCurrencies.includes(fetchedCurrencyCode)) {
+          currencyCode = fetchedCurrencyCode;
+        }
+      }
 
-    // Add to cart and navigate
-    addToCart(product);
-    navigation.navigate('Cart');
+      // Get exchange rate from target currency to EUR
+      const exchangeRate = await getExchangeRate(currencyCode);
+
+      // Convert price to EUR
+      const priceInEuro = finalPrice * exchangeRate;
+      console.log(priceInEuro)
+
+      // Format the insole data as expected by the cart context
+      const product = {
+        id: `insole-${insoleType.toLowerCase()}`,
+        title: insole.name,
+        price: priceInEuro,
+        newPrice: `${pricing.currency}${originalPrice}`,
+        ...(discount !== undefined && { discountedPrice: `${pricing.currency}${finalPrice.toFixed(2)}` }),
+        ...(discount !== undefined && { discountedPriceValue: finalPrice.toFixed(2) }),
+        selectedImage: Image.resolveAssetSource(insole.image).uri,
+        description: insole.features.join(' | '),
+        selectedSize: shoeSize.country + ' ' + shoeSize.size,
+        selectedColor: 'NoOptions',
+        quantity: 1,
+        priceValue: finalPrice, // Store the price in EUR
+        priceInEuro: priceInEuro,
+      };
+
+      // Add to cart and navigate
+      console.log(product)
+      addToCart(product);
+
+
+      if (isDressInsole && shoeType) {
+        try {
+          const retailerRef = firestore().collection('users').doc(userData?.id);
+
+          await retailerRef.set({
+            shoeType: {
+              type: 'Yes',
+              shoesType: shoeType.trim(),
+            }
+          }, { merge: true });
+
+        } catch (error) {
+          console.error('Error updating customer shoes type:', error);
+        }
+      }
+
+
+      navigation.navigate('Cart');
+    } catch (error) {
+      console.error('Error handling add to cart:', error);
+    }
   };
 
   if (loading) {
@@ -214,7 +305,7 @@ const InsoleRecommendation = () => {
           {orderedTypes.map((type) => {
             const isRecommended = type === recommendedInsole;
             const insole = insoleData[type];
-            const price = pricing[type];
+            const price = pricing[type] + pricing.Shipping;;
 
             return (
               <View
@@ -232,7 +323,23 @@ const InsoleRecommendation = () => {
                 )}
                 <Text style={[styles.cardTitle, isRecommended && styles.recommendedTitle]}>{insole.name}</Text>
                 <Image source={insole.image} style={styles.insoleImage} resizeMode="cover" />
-                <Text style={styles.priceText}>{pricing.currency}{price}</Text>
+                <View style={styles.priceContainer}>
+                  {pricing[`${type}Discount` as keyof InsolePricing] ? (
+                    <>
+                      <Text style={styles.originalPrice}>{pricing.currency}{price}</Text>
+                      <Text style={styles.discountedPrice}>
+                        {pricing.currency}{(pricing[type] - (pricing[type] * (pricing[`${type}Discount` as keyof InsolePricing] as number) / 100)).toFixed(2)}
+                      </Text>
+                      <View style={styles.discountBadge}>
+                        <Text style={styles.discountText}>
+                          {pricing[`${type}Discount` as keyof InsolePricing]}% OFF
+                        </Text>
+                      </View>
+                    </>
+                  ) : (
+                    <Text style={styles.priceText}>{pricing.currency}{price}</Text>
+                  )}
+                </View>
                 <View style={styles.featuresContainer}>
                   {insole.features.map((feature, i) => (
                     <View key={i} style={styles.featureRow}>
@@ -240,6 +347,47 @@ const InsoleRecommendation = () => {
                       <Text style={styles.featureText}>{feature}</Text>
                     </View>
                   ))}
+                </View>
+
+                <View style={styles.dressInsoleSection}>
+                  <View style={styles.checkboxContainer}>
+                    <Checkbox
+                      status={isDressInsole ? 'checked' : 'unchecked'}
+                      onPress={() => setIsDressInsole(!isDressInsole)}
+                    />
+                    <Text style={styles.checkboxLabel}>Do you want a dress insole?</Text>
+                    <IconButton
+                      icon="information"
+                      size={20}
+                      onPress={() => setShowInfoModal(true)}
+                      style={styles.infoButton}
+                    />
+                  </View>
+
+                  {isDressInsole && (
+                    <View style={styles.shoeTypeContainer}>
+                      <View style={{ padding: 4, marginBottom: 8 }}>
+                        <Text style={{ fontSize: 14, paddingLeft: 12, fontWeight: 'bold' }}>What shoes do you wear? (mandatory limit 5 words)</Text>
+                        {/* <Text style={{ fontSize: 14, paddingLeft: 12, }}></Text> */}
+                      </View>
+                      <TextInput
+                        style={[styles.shoeTypeInput, showShoeTypeError && styles.errorInput]}
+                        placeholder="I wear bata shoes"
+                        value={shoeType}
+                        placeholderTextColor="grey"
+                        onChangeText={(text) => {
+                          setShoeType(text);
+                          setShowShoeTypeError(false);
+                        }}
+                        maxLength={50}
+                      />
+                      {showShoeTypeError && (
+                        <Text style={styles.errorText}>
+                          Please enter shoe type (max 5 words)
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </View>
                 <TouchableOpacity
                   style={styles.buyButton}
@@ -263,6 +411,20 @@ const InsoleRecommendation = () => {
           </View>
         </View>
       </ScrollView>
+
+      <Portal>
+        <Dialog style={{ backgroundColor: "#00843D" }} visible={showInfoModal} onDismiss={() => setShowInfoModal(false)}>
+          <Dialog.Title>Dress Insole Information</Dialog.Title>
+          <Dialog.Content>
+            <Text style={{ color: "white" }}>A thin, supportive insole designed for formal or dress shoes.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <TouchableOpacity onPress={() => setShowInfoModal(false)}>
+              <Text style={styles.dialogButton}>Close</Text>
+            </TouchableOpacity>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </SafeAreaView>
   );
 };
@@ -443,6 +605,75 @@ const styles = StyleSheet.create({
     color: '#00843D',
     textAlign: 'center',
     marginBottom: 15,
+  },
+  dressInsoleSection: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  infoButton: {
+    margin: 0,
+  },
+  shoeTypeContainer: {
+    marginTop: 10,
+  },
+  shoeTypeInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: '#fff',
+  },
+  errorInput: {
+    borderColor: '#ff0000',
+  },
+  errorText: {
+    color: '#ff0000',
+    fontSize: 12,
+    marginTop: 5,
+  },
+  dialogButton: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '500',
+    padding: 8,
+  },
+  priceContainer: {
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  originalPrice: {
+    fontSize: 16,
+    color: '#999',
+    textDecorationLine: 'line-through',
+    marginBottom: 4,
+  },
+  discountedPrice: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#00843D',
+  },
+  discountBadge: {
+    backgroundColor: '#FF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  discountText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

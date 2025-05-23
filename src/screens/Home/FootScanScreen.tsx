@@ -126,23 +126,6 @@ const FootScanScreen = () => {
                     storedAt: firestore.FieldValue.serverTimestamp(),
                 }, { merge: true });
 
-                // Store measurements in Firestore
-                // await firestore()
-                //     .collection('users')
-                //     .doc(user.uid)
-                //     .collection('measurements')
-                //     .doc(data.data.id)
-                //     .set({
-                //         scanId: data.data.id,
-                //         createdAt: scanData.created_at,
-                //         measurements: scanData.measurements,
-                //         meshes: scanData.meshes,
-                //         scanType: scanData.scan_type,
-                //         success: scanData.success,
-                //         storedAt: firestore.FieldValue.serverTimestamp(),
-                //     });
-
-                // console.log('Measurements stored successfully');
             } catch (error) {
                 console.error('Error fetching/storing measurements:', error);
                 showAlert('Error', 'Failed to store measurements. Please try again.', 'error');
@@ -170,7 +153,7 @@ const FootScanScreen = () => {
         z: 0
     });
 
-    // function for a4sheet detection from python server 
+    // function for a4sheet detection from python server ;
 
     async function sendImageForDetection(photoUri: string) {
         const formData = new FormData();
@@ -181,7 +164,7 @@ const FootScanScreen = () => {
         });
 
         try {
-            const response = await axios.post('http://192.168.137.6:5000/detect-sheet', formData, {
+            const response = await axios.post('https://myfootfirstserver.onrender.com/detect-sheet', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -217,7 +200,7 @@ const FootScanScreen = () => {
             isVertical,
             x,
             y,
-            z
+            z,
         });
 
         // Relaxed conditions for testing
@@ -535,22 +518,12 @@ const FootScanScreen = () => {
                     ]}
                 />
                 <View style={styles.footGuideHeader}>
-                    <Text style={styles.footGuideTitle}>{currentFoot === 'left' ? 'Left' : 'Right'} foot</Text>
+                    <Text style={styles.footGuideTitle}>{currentFoot === 'left' ? 'Left' : 'Right'} Foot</Text>
                     <Text style={styles.footGuideSubtitle}>
                         {currentView === 'left' ? 'Outside' : currentView === 'right' ? 'Inside' : 'Top'} view
                     </Text>
                 </View>
-                {/* <Text style={styles.instructionText}>
-                    {getOrientationInstructions()}
-                </Text> */}
-                {/* Debug info */}
-                {/* <View style={styles.debugInfo}>
-                    <Text style={styles.debugText}>Tilt: {debugInfo.tiltAngle.toFixed(1)}°</Text>
-                    <Text style={styles.debugText}>Forward: {debugInfo.forwardTilt.toFixed(1)}°</Text>
-                    <Text style={styles.debugText}>X: {debugInfo.x.toFixed(2)}</Text>
-                    <Text style={styles.debugText}>Y: {debugInfo.y.toFixed(2)}</Text>
-                    <Text style={styles.debugText}>Z: {debugInfo.z.toFixed(2)}</Text>
-                </View> */}
+
             </View>
         );
     };
@@ -1124,3 +1097,6 @@ const styles = StyleSheet.create({
 });
 
 export default FootScanScreen;
+
+
+

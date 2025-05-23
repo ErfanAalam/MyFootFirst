@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { useUser } from '../../contexts/UserContext';
 import firestore from '@react-native-firebase/firestore';
 import { NavigationProp } from '@react-navigation/native';
 import CustomAlertModal from '../../Components/CustomAlertModal';
+import { CartItem } from '../../contexts/CartContext';
 
 // Add type for navigation
 type RootStackParamList = {
@@ -40,19 +41,6 @@ interface UserData {
   firstName?: string;
   phone?: string;
   country?: string;
-}
-
-// Add CartItem interface
-interface CartItem {
-  id: string;
-  title: string;
-  price: number;
-  priceValue: number;
-  newPrice: string;
-  quantity: number;
-  image: string;
-  selectedImage?: string;
-  color:string,
 }
 
 const CartScreen = () => {
@@ -178,14 +166,11 @@ const CartScreen = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://192.168.137.6:5000/create-checkout-session', {
+      const response = await axios.post('https://myfootfirstserver.onrender.com/create-checkout-session', {
         name: items[0].title,
         price: totalPrice,
-        // Include shipping address if needed by your backend
-        // address: selectedAddress,
       });
 
-      // Reset order processed flag when starting a new checkout
       orderProcessedRef.current = false;
 
       setCheckoutUrl(response.request.responseURL);
@@ -196,7 +181,7 @@ const CartScreen = () => {
       setLoading(false);
     }
   };
-  // console.log(items);
+
 
   // Improved order storage function
   const storeOrderData = useCallback(async () => {
@@ -209,7 +194,7 @@ const CartScreen = () => {
 
       // Separate insole products from other products
       const insoleProducts = items.filter(item =>
-        ['insole-stability', 'insole-comfort', 'insole-sport'].includes(item.id)
+        ['insole-active', 'insole-comfort', 'insole-sport'].includes(item.id)
       );
       const otherProducts = items;
 
@@ -333,6 +318,11 @@ const CartScreen = () => {
   };
 
   const renderCartItem: ListRenderItem<CartItem> = ({ item }) => {
+    const calculateDiscountedTotal = () => {
+      if (!item.discountedPriceValue) return 0;
+      return (item.discountedPriceValue * item.quantity).toFixed(2);
+    };
+
     return (
       <View style={styles.cartItemContainer}>
         <Image
@@ -342,7 +332,22 @@ const CartScreen = () => {
         />
         <View style={styles.productDetails}>
           <Text style={styles.productTitle}>{item.title}</Text>
-          <Text style={styles.productPrice}>{(item.newPrice).slice(0, 1)} {(item.priceValue * item.quantity).toFixed(2)}</Text>
+          <View style={styles.priceContainer}>
+            {item.discountedPrice ? (
+              <>
+                <Text style={styles.originalPrice}>
+                  {(item.newPrice).slice(0, 1)} {(item.priceValue * item.quantity).toFixed(2)}
+                </Text>
+                <Text style={styles.discountedPrice}>
+                  {(item.discountedPrice).slice(0, 1)} {calculateDiscountedTotal()}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.regularPrice}>
+                {(item.newPrice).slice(0, 1)} {(item.priceValue * item.quantity).toFixed(2)}
+              </Text>
+            )}
+          </View>
           <View style={styles.quantityContainer}>
             <TouchableOpacity
               style={styles.quantityButton}
@@ -665,11 +670,32 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: '#333',
   },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 4,
+  },
   productPrice: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
+    color: '#333',
+  },
+  originalPrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FF0000',
+    textDecorationLine: 'line-through',
+  },
+  discountedPrice: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#00843D',
-    marginBottom: 8,
+  },
+  regularPrice: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
   quantityContainer: {
     flexDirection: 'row',

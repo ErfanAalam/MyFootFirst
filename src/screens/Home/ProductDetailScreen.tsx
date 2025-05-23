@@ -10,6 +10,8 @@ interface Product {
   title: string;
   price: number;
   newPrice: string;
+  discountedPrice?: string;
+  discountedPriceValue?: number;
   description: string;
   sizes: string[];
   colorImages: {
@@ -155,8 +157,6 @@ const ProductDetailScreen = () => {
   };
 
   const handleAddToCart = () => {
-    // Create a modified product with the selected color and image
-    console.log(selectedColor);
     const productToAdd = {
       ...product,
       selectedColor,
@@ -165,6 +165,8 @@ const ProductDetailScreen = () => {
       price: product.price,
       newPrice: product.newPrice,
       priceValue: product.priceValue,
+      discountedPrice: product.discountedPrice,
+      discountedPriceValue: product.discountedPriceValue,
     };
     console.log(productToAdd);
     addToCart(productToAdd);
@@ -261,8 +263,14 @@ const ProductDetailScreen = () => {
           </View>
 
           <View style={styles.priceContainer}>
-            {/* <Text style={styles.priceLabel}>$</Text> */}
-            <Text style={styles.priceValue}>{product.newPrice}</Text>
+            {product.discountedPrice ? (
+              <View style={styles.discountedPriceContainer}>
+                <Text style={styles.originalPrice}>{product.newPrice}</Text>
+                <Text style={styles.discountedPrice}>{product.discountedPrice}</Text>
+              </View>
+            ) : (
+              <Text style={styles.priceValue}>{product.newPrice}</Text>
+            )}
           </View>
 
           {cartItem ? (
@@ -459,20 +467,28 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginVertical: 20,
   },
-  priceLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+  discountedPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  originalPrice: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#FF0000',
+    textDecorationLine: 'line-through',
+  },
+  discountedPrice: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#00843D',
   },
   priceValue: {
     fontSize: 26,
     fontWeight: '700',
     color: '#333',
-    marginLeft: 4,
   },
   addButton: {
     backgroundColor: '#00843D',

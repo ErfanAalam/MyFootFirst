@@ -8,3 +8,6 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+# Stripe Push Provisioning keep rules
+-keep class com.stripe.android.pushProvisioning.** { *; }
+-dontwarn com.stripe.android.pushProvisioning.**

@@ -100,7 +100,7 @@ const RootNavigator = () => {
 
             setHasProfile(userDoc.exists);
           }
-        } catch (error) {
+        } catch (error) { 
           console.error('Error checking user profile:', error);
           setHasProfile(false);
         }
@@ -162,4 +162,3 @@ const RootNavigator = () => {
 
 export default RootNavigator;
 
-// 608411623919-0ggji53i05h7fnkbg5cj9qbo1ctf545m.apps.googleusercontent.com
