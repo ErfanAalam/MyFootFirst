@@ -7,7 +7,7 @@ import { useUser } from '../../contexts/UserContext';
 import { useCart } from '../../contexts/CartContext';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 45);
+const CARD_WIDTH = width - 32; // Full width minus padding
 
 // Define types
 interface Product {
@@ -15,6 +15,7 @@ interface Product {
     title: string;
     price: number;
     newPrice: string;
+    priceValue: number;
     discountedPrice?: string;
     discountedPriceValue?: number;
     image: string;
@@ -155,7 +156,7 @@ const CategoryProductsScreen = () => {
                         <Image
                             source={{ uri: randomImage }}
                             style={styles.productImage}
-                            resizeMode="cover"
+                            resizeMode="contain"
                         />
                     ) : (
                         <View style={styles.noImageContainer}>
@@ -255,7 +256,7 @@ const CategoryProductsScreen = () => {
                 data={products}
                 renderItem={renderProductCard}
                 keyExtractor={item => item.id}
-                numColumns={2}
+                numColumns={1}
                 contentContainerStyle={styles.productList}
                 showsVerticalScrollIndicator={false}
                 ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
@@ -353,7 +354,6 @@ const styles = StyleSheet.create({
     },
     card: {
         width: CARD_WIDTH,
-        marginHorizontal: 8,
         backgroundColor: '#ffffff',
         borderRadius: 16,
         shadowColor: '#000',
@@ -364,13 +364,14 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     imageContainer: {
-        height: 220,
+        height: 280, // Increased height for better image display
         position: 'relative',
         backgroundColor: '#f8f9fa',
     },
     productImage: {
         width: '100%',
         height: '100%',
+        resizeMode: 'contain', // Changed to contain to ensure full image visibility
     },
     noImageContainer: {
         flex: 1,
@@ -421,11 +422,11 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     productTitle: {
-        fontSize: 16,
+        fontSize: 18, // Increased font size
         fontWeight: '600',
         color: '#1f2937',
-        lineHeight: 22,
-        marginBottom: 8,
+        lineHeight: 24, // Increased line height
+        marginBottom: 12,
     },
     colorContainer: {
         flexDirection: 'row',
@@ -448,21 +449,22 @@ const styles = StyleSheet.create({
     priceContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 12, // Increased gap between prices
+        marginTop: 8,
     },
     discountedPrice: {
-        fontSize: 18,
+        fontSize: 20, // Increased font size
         fontWeight: '700',
         color: '#059669',
     },
     originalPrice: {
-        fontSize: 14,
+        fontSize: 16, // Increased font size
         fontWeight: '500',
         color: '#9ca3af',
         textDecorationLine: 'line-through',
     },
     regularPrice: {
-        fontSize: 18,
+        fontSize: 20, // Increased font size
         fontWeight: '700',
         color: '#1f2937',
     },
