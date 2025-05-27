@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar as RNStatusBar,
+  Image,
 } from 'react-native';
 // import { WebView } from 'react-native-webview';
 import { Card } from 'react-native-paper';
@@ -18,55 +19,29 @@ import { getAuth } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import CustomAlertModal from '../../Components/CustomAlertModal';
 
-
-
-type Product = {
-  id: string;
-  price: string;
-  title: string;
-  image: any;
-};
-
 // Define the navigation types
 type RootStackParamList = {
   Home: undefined;
   FootScanScreen: undefined;
   InsoleQuestions: undefined;
+  CategoryProducts: { category: string };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
+// Add Category type
+type Category = {
+  id: string;
+  name: string;
+  imageUrl: string;
+};
 
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { userData } = useUser();
   const [selectedFoot, setSelectedFoot] = useState<'left' | 'right'>('left');
   const [painPoints, setPainPoints] = useState<string[]>([]);
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: '1',
-      price: '$49.99',
-      title: 'Insole 1',
-      image: require('../../assets/images/banner1.png'),
-    },
-    {
-      id: '2',
-      price: '$59.99',
-      title: 'Insole 2',
-      image: require('../../assets/images/banner2.jpg'),
-    },
-    {
-      id: '3',
-      price: '$39.99',
-      title: 'Insole 3',
-      image: require('../../assets/images/banner3.jpeg'),
-    },
-    {
-      id: '4',
-      price: '$39.99',
-      title: 'Insole 4',
-      image: require('../../assets/images/banner3.jpeg'),
-    },
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [alertModal, setAlertModal] = useState({
     visible: false,
     title: '',
@@ -112,11 +87,34 @@ const HomeScreen = () => {
           painPoints: painPoints,
         });
 
-      navigation.navigate('FootScanScreen');
+      // navigation.navigate('FootScanScreen');
+      navigation.navigate('InsoleQuestions');
     } catch (error) {
       showAlert('Error', 'Failed to save pain points', 'error');
     }
   };
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoryImagesRef = firestore().collection('categoryImages');
+        const snapshot = await categoryImagesRef.get();
+
+        const fetchedCategories = snapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.id.charAt(0).toUpperCase() + doc.id.slice(1), // Capitalize first letter
+          imageUrl: doc.data().imageUrl
+        }));
+
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        showAlert('Error', 'Failed to load categories', 'error');
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -180,28 +178,31 @@ const HomeScreen = () => {
           <Text style={styles.recommendationsTitle}>Recommendations for You</Text>
 
           <View style={styles.gridContainer}>
-            {products.map((product) => (
-              <View key={product.id} style={styles.gridItem}>
-                <Card style={styles.productCard}>
-                  <Card.Cover source={product.image} style={styles.productImage} />
-                  <Card.Content style={styles.productContent}>
-                    <View style={styles.productTitleRow}>
-                      <Text style={styles.productTitle}>{product.title}</Text>
-                      <Text style={styles.productPrice}>{product.price}</Text>
-                    </View>
-                  </Card.Content>
-                </Card>
-              </View>
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={styles.gridItem}
+                onPress={() => navigation.navigate('CategoryProducts', { category: category.id })}
+                activeOpacity={0.8}
+              >
+                <View style={styles.categoryCard}>
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: category.imageUrl }}
+                      style={styles.categoryImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.overlay} />
+                  </View>
+                  <View style={styles.categoryContent}>
+                    <Text style={styles.categoryTitle} numberOfLines={2}>
+                      {category.name}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             ))}
           </View>
-
-          <TouchableOpacity
-            style={styles.showAllButton}
-            // onPress={() => navigation.navigate("Ecommerce")}
-            onPress={() => navigation.navigate("InsoleQuestions")}
-          >
-            <Text style={styles.showAllButtonText}>Show All</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -313,68 +314,78 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   recommendationsContainer: {
-    padding: 15,
+    padding: 24,
     marginBottom: 20,
+    backgroundColor: '#fafbfc',
   },
   recommendationsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    color: "#333",
+    fontSize: 28,
+    fontWeight: "800",
+    marginBottom: 24,
+    color: "#0a0a0a",
+    letterSpacing: -0.5,
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginHorizontal: 10,
+    gap: 16,
   },
   gridItem: {
-    width: '48%', // 2 items per row with small spacing
-    marginBottom: 16,
+    width: '47%',
   },
-  productCard: {
-    borderRadius: 10,
+  categoryCard: {
+    borderRadius: 24,
+    backgroundColor: "#ffffff",
+    elevation: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
     overflow: 'hidden',
-    backgroundColor: "#fff",
-  },
-  productImage: {
-    height: 120,
-    resizeMode: 'cover',
-  },
-  productContent: {
-    padding: 10,
-  },
-  productTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productPrice: {
-    fontSize: 16,
-    marginTop: 8,
-  },
-  productTitle: {
-    fontSize: 14,
-    marginTop: 4,
-  },
-  showAllButton: {
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderColor: '#00843D',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: 8,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  showAllButtonText: {
-    color: '#00843D',
+  imageContainer: {
+    height: 150,
+    position: 'relative',
+    backgroundColor: '#f5f5f5',
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f0f0f0',
+  },
+  overlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
+  },
+  categoryContent: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    minHeight: 70,
+    justifyContent: 'center',
+  },
+  categoryTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    lineHeight: 22,
+    letterSpacing: 0.2,
   },
   stepIndicatorContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
     marginTop: 10,
   },

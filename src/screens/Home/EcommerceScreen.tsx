@@ -3,196 +3,72 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, SafeAreaView
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import firestore from '@react-native-firebase/firestore';
-import { useUser } from '../../contexts/UserContext';
 import { useCart } from '../../contexts/CartContext';
 
 // Define types
-interface Product {
+type Category = {
   id: string;
-  title: string;
-  price: number;
-  newPrice: string;
-  discountedPrice?: string;
-  discountedPriceValue?: number;
-  image: string;
-  description: string;
-  colors: string[];
-  sizes?: string[];
-  colorImages: {
-    [key: string]: string[];
-  };
-}
+  name: string;
+  imageUrl: string;
+};
 
 type RootStackParamList = {
-  ProductDetail: { product: Product };
+  CategoryProducts: { category: string };
   MainTabs: undefined;
   Cart: undefined;
 };
 
 type NavigationProps = NativeStackNavigationProp<RootStackParamList>;
 
+const EcommerceScreen = () => {
+  const navigation = useNavigation<NavigationProps>();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const { items } = useCart();
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoryImagesRef = firestore().collection('categoryImages');
+        const snapshot = await categoryImagesRef.get();
 
-interface ProductCardProps {
-  item: Product;
-  onPress: () => void;
-}
+        const fetchedCategories = snapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.id.charAt(0).toUpperCase() + doc.id.slice(1), // Capitalize first letter
+          imageUrl: doc.data().imageUrl
+        }));
 
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
 
-const getCurrencyCode = async (countryName: string): Promise<string> => {
-  try {
-    const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
-    const data = await res.json();
+    fetchCategories();
+  }, []);
 
-    if (Array.isArray(data) && data.length > 0 && data[0].currencies) {
-      return Object.keys(data[0].currencies)[0];
-    }
-
-    throw new Error('Currency data not found');
-  } catch (err) {
-    console.error('Failed to fetch currency code:', err);
-    return 'EUR';
-  }
-};
-
-
-const getExchangeRate = async (toCurrency: string): Promise<number> => {
-  try {
-    const res = await fetch(`https://api.frankfurter.app/latest?from=EUR&to=${toCurrency}`);
-    const data = await res.json();
-    console.log(data);
-
-    if (!data || !data.rates || !data.rates[toCurrency]) {
-      throw new Error('Invalid exchange rate response');
-    }
-
-    return data.rates[toCurrency];
-  } catch (err) {
-    console.error('Failed to fetch exchange rate:', err);
-    return 1; // fallback to EUR
-  }
-};
-
-const getCurrencySymbol = (currencyCode: string): string => {
-  return (0).toLocaleString(undefined, {
-    style: 'currency',
-    currency: currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).replace(/\d/g, '').trim();
-};
-
-
-const ProductCard = ({ item, onPress }: ProductCardProps) => {
-  const allImages = Object.values(item.colorImages || {}).flat();
-
-  // Select a random image from the array
-  const randomImage = allImages.length > 0
-    ? allImages[0]
-    : null;
-
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
+  const renderCategoryCard = ({ item }: { item: Category }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('CategoryProducts', { category: item.id })}
+      activeOpacity={0.8}
+    >
       <View style={styles.imageContainer}>
-        {randomImage ? (
-          <Image
-            source={{ uri: randomImage }}
-            style={styles.productImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text>No Image</Text>
-        )}
+        <Image
+          source={{ uri: item.imageUrl }}
+          style={styles.categoryImage}
+          resizeMode="cover"
+        />
+        <View style={styles.imageOverlay} />
       </View>
-      <Text style={styles.productTitle}>{item.title}</Text>
-      <View style={styles.priceContainer}>
-        {item.discountedPrice ? (
-          <>
-            <Text style={styles.originalPrice}>{item.newPrice}</Text>
-            <Text style={styles.discountedPrice}>{item.discountedPrice}</Text>
-          </>
-        ) : (
-          <Text style={styles.regularPrice}>{item.newPrice}</Text>
-        )}
+      <View style={styles.cardContent}>
+        <Text style={styles.categoryTitle}>{item.name}</Text>
+        <View style={styles.shopNowContainer}>
+          <Text style={styles.shopNowText}>Shop Now</Text>
+          <Text style={styles.arrow}>→</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
-};
-
-const EcommerceScreen = () => {
-  const navigation = useNavigation<NavigationProps>();
-  const [products, setProducts] = useState<Product[]>([]);
-  const { userData } = useUser();
-  const { items } = useCart();
-
-
-  const handleProductPress = (product: Product) => {
-    navigation.navigate('ProductDetail', { product });
-  };
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      if (!userData?.country) return;
-
-      const allowedCurrencies = ['USD', 'EUR', 'INR', 'GBP'];
-      const countryName = userData.country;
-
-      let currencyCode = 'EUR'; // Default
-      try {
-        const fetchedCurrencyCode = await getCurrencyCode(countryName);
-        if (allowedCurrencies.includes(fetchedCurrencyCode)) {
-          currencyCode = fetchedCurrencyCode;
-        }
-      } catch (err) {
-        console.error('Failed to get valid currency code:', err);
-      }
-
-      let exchangeRate = 1; // Default is EUR
-      if (currencyCode !== 'EUR') {
-        try {
-          exchangeRate = await getExchangeRate(currencyCode);
-        } catch (err) {
-          console.error('Failed to get exchange rate:', err);
-          exchangeRate = 1;
-        }
-      }
-
-      const querySnapshot = await firestore().collection('EcommerceProducts').get();
-
-      const updatedProducts = querySnapshot.docs.map((doc: any) => {
-        const data = doc.data();
-        const priceInEUR = data.price;
-        const discountedPriceInEUR = data.discountedPrice;
-
-        const convertedPrice = (priceInEUR * exchangeRate).toFixed(2);
-        const priceWithSymbol = `${getCurrencySymbol(currencyCode)} ${convertedPrice}`;
-
-        let discountedPriceWithSymbol = undefined;
-        let discountedPriceValue = undefined;
-
-        if (discountedPriceInEUR) {
-          const convertedDiscountedPrice = (discountedPriceInEUR * exchangeRate).toFixed(2);
-          discountedPriceWithSymbol = `${getCurrencySymbol(currencyCode)} ${convertedDiscountedPrice}`;
-          discountedPriceValue = +convertedDiscountedPrice;
-        }
-
-        return {
-          id: doc.id,
-          ...data,
-          price: priceInEUR,
-          newPrice: priceWithSymbol,
-          priceValue: +convertedPrice,
-          discountedPrice: discountedPriceWithSymbol,
-          discountedPriceValue: discountedPriceValue,
-          currency: currencyCode,
-        };
-      });
-
-      setProducts(updatedProducts);
-    };
-
-    fetchProducts();
-  }, [userData?.country]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -200,32 +76,52 @@ const EcommerceScreen = () => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Image
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/130/130882.png' }}
-            style={styles.backIcon}
-          />
+          <View style={styles.iconButton}>
+            <Image
+              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/130/130882.png' }}
+              style={styles.backIcon}
+            />
+          </View>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>MyShop</Text>
-        <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
-          <Image
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/263/263142.png' }}
-            style={styles.cartIcon}
-          />
-          {items.length > 0 && (
-            <Text style={styles.cartCounter}>{items.length}</Text>
-          )}
+
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>MyShop</Text>
+          <Text style={styles.headerSubtitle}>Discover amazing products</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => navigation.navigate('Cart')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconButton}>
+            <Image
+              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/263/263142.png' }}
+              style={styles.cartIcon}
+            />
+            {items.length > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartCounter}>{items.length}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
-      <Text style={styles.title}>Explore Products</Text>
+
+      <View style={styles.titleContainer}>
+        <Text style={styles.title}>Shop by Category</Text>
+        <Text style={styles.subtitle}>Find exactly what you're looking for</Text>
+      </View>
+
       <FlatList
-        data={products}
-        renderItem={({ item }) => (
-          <ProductCard item={item} onPress={() => handleProductPress(item)} />
-        )}
+        data={categories}
+        renderItem={renderCategoryCard}
         keyExtractor={item => item.id}
         numColumns={2}
-        contentContainerStyle={styles.productList}
+        contentContainerStyle={styles.categoryList}
+        showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   );
@@ -234,124 +130,181 @@ const EcommerceScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fff',
+    borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  headerCenter: {
+    alignItems: 'center',
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-  },
-  cartButton: {
-    padding: 6,
-  },
-  cartIcon: {
-    width: 24,
-    height: 24,
-  },
-  title: {
     fontSize: 24,
-    fontWeight: '600',
-    marginVertical: 16,
-    paddingHorizontal: 16,
-    color: '#333',
+    fontWeight: '800',
+    color: '#1e293b',
+    letterSpacing: -0.5,
   },
-  productList: {
-    paddingHorizontal: 8,
-    paddingBottom: 20,
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+    fontWeight: '400',
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   backButton: {
-    padding: 6,
+    marginRight: 4,
   },
   backIcon: {
     width: 20,
     height: 20,
+    tintColor: '#475569',
+  },
+  cartButton: {
+    marginLeft: 4,
+    position: 'relative',
+  },
+  cartIcon: {
+    width: 22,
+    height: 22,
+    tintColor: '#475569',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cartCounter: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  titleContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1e293b',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginTop: 4,
+    fontWeight: '400',
+  },
+  categoryList: {
+    paddingHorizontal: 12,
+    paddingBottom: 32,
   },
   card: {
     flex: 1,
     margin: 8,
-    padding: 12,
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   imageContainer: {
     height: 160,
     width: '100%',
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    marginBottom: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'relative',
+    backgroundColor: '#f8fafc',
   },
-  productImage: {
-    height: "100%",
+  categoryImage: {
+    height: '100%',
     width: '100%',
     backgroundColor: 'transparent',
-    borderRadius: 8,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  cardContent: {
+    padding: 16,
+    backgroundColor: '#ffffff',
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#1e293b',
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
-  productTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginVertical: 4,
-  },
-  priceContainer: {
+  shopNowContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  originalPrice: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FF0000',
-    textDecorationLine: 'line-through',
-  },
-  discountedPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#00843D',
-  },
-  regularPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  cartCounter: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    position: 'absolute',
-    backgroundColor: '#00843D',
-    right: -5,
-    top: -5,
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 100,
-    height: 20,
-    width: 20,
-    textAlign: 'center',
-    padding: 2,
+    borderColor: '#e2e8f0',
+  },
+  shopNowText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#00843D',
+    marginRight: 4,
+  },
+  arrow: {
+    fontSize: 14,
+    color: '#00843D',
+    fontWeight: '600',
   },
 });
 

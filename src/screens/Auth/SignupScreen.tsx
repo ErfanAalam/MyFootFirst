@@ -9,6 +9,7 @@ import {
   Image,
   Dimensions,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '@react-navigation/native';
@@ -67,26 +68,6 @@ const SignupScreen = () => {
 
       // Sign-in the user with the credential
       const userCredential = await getAuth().signInWithCredential(googleCredential);
-
-      // Check if user exists in Firestore
-      // const userDoc = await firestore()
-      //   .collection('users')
-      //   .doc(userCredential.user.uid)
-      //   .get();
-
-      // if (!userDoc.exists) {
-      //   // If user doesn't exist in Firestore, create a new user document
-      //   await firestore().collection('users').doc(userCredential.user.uid).set({
-      //     email: userCredential.user.email,
-      //     displayName: userCredential.user.displayName || userInfo.user?.name,
-      //     photoURL: userCredential.user.photoURL || userInfo.user?.photo,
-      //     createdAt: firestore.FieldValue.serverTimestamp(),
-      //     provider: 'google',
-      //   });
-
-      //   // Navigate to signup details for new users
-      //   navigation.navigate('SignupDetails');
-      // }
 
     } catch (error: any) {
       console.error('Google Sign-In Error:', error);
@@ -240,6 +221,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#fff',
+    // marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
   },
   container: {
     padding: 20,

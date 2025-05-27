@@ -42,11 +42,17 @@ const ProfileScreen = () => {
           </View>
 
           <View style={styles.menuContainer}>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.menuItem}
               onPress={() => handleNavigation('ReferralCode')}
             >
               <Text style={styles.menuItemText}>Referral Code</Text>
+            </TouchableOpacity> */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => handleNavigation('RetailerLocation')}
+            >
+              <Text style={styles.menuItemText}>Retailer Store Location</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.menuItem}

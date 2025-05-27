@@ -21,6 +21,8 @@ import FillDetails from '../screens/Auth/FillDetails';
 import GoogleUserActivity from '../screens/Auth/GoogleUserActivity';
 import firestore from '@react-native-firebase/firestore';
 import { useUser } from '../contexts/UserContext';
+import MapScreen from '../screens/Home/MapScreen';
+import CategoryProductsScreen from '../screens/Home/CategoryProductsScreen';
 
 type RootStackParamList = {
   FillDetails: undefined;
@@ -43,6 +45,7 @@ type RootStackParamList = {
   Ecommerce: undefined;
   Messaging: undefined;
   OrderHistory: undefined;
+  RetailerLocation: undefined;
 };
 
 interface UserContextType {
@@ -149,6 +152,8 @@ const RootNavigator = () => {
                 <Stack.Screen name="Ecommerce" component={EcommerceScreen} />
                 <Stack.Screen name="Messaging" component={Messaging} />
                 <Stack.Screen name="OrderHistory" component={OrderHistory} />
+                <Stack.Screen name="RetailerLocation" component={MapScreen} />
+                <Stack.Screen name="CategoryProducts" component={CategoryProductsScreen} />
               </>
             )}
           </Stack.Navigator>

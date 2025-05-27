@@ -33,6 +33,12 @@ interface Retailer {
     businessName: string;
 }
 
+interface Admin {
+    id: string;
+    AdminName: string;
+    email: string;
+}
+
 interface Message {
     id: string;
     from: string;
@@ -49,9 +55,12 @@ const Messaging: React.FC = () => {
     const [conversationMessages, setConversationMessages] = useState<Message[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [retailers, setRetailers] = useState<Retailer[]>([]);
+    const [admins, setAdmins] = useState<Admin[]>([]);
     const [selectedRetailer, setSelectedRetailer] = useState<Retailer | null>(null);
+    const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
     const [messageText, setMessageText] = useState('');
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'retailers' | 'admins'>('retailers');
     const { userData } = useUser();
     const navigation = useNavigation();
 
@@ -250,33 +259,47 @@ const Messaging: React.FC = () => {
         setLoading(true);
 
         try {
-            const snap = await firestore().collection('Retailers').get();
-            const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Retailer);
-            setRetailers(data);
+            // Fetch retailers
+            const retailersSnap = await firestore().collection('Retailers').get();
+            const retailersData = retailersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Retailer);
+            setRetailers(retailersData);
+
+            // Fetch admins
+            const adminsSnap = await firestore().collection('Admin').get();
+            const adminsData = adminsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Admin);
+            setAdmins(adminsData);
         } catch (error) {
-            console.error('❌ Failed to fetch retailers:', error);
+            console.error('❌ Failed to fetch recipients:', error);
         } finally {
             setLoading(false);
         }
     };
 
     const sendMessage = async () => {
-        if (!selectedRetailer || !messageText.trim()) return;
+        if ((!selectedRetailer && !selectedAdmin) || !messageText.trim()) return;
 
         setLoading(true);
 
         try {
+            const recipient = activeTab === 'retailers' ? selectedRetailer : selectedAdmin;
+            if (!recipient) return;
+
+            const toName = activeTab === 'retailers' 
+                ? (recipient as Retailer).businessName 
+                : (recipient as Admin).AdminName;
+
             await firestore().collection('messages').add({
                 from: userData?.id,
-                to: selectedRetailer?.uid,
+                to: activeTab === 'retailers' ? (recipient as Retailer).uid : recipient.id,
                 text: messageText.trim(),
                 timestamp: firestore.FieldValue.serverTimestamp(),
                 fromName: userData?.firstName,
-                toName: selectedRetailer?.businessName,
+                toName: toName,
             });
 
             setMessageText('');
             setSelectedRetailer(null);
+            setSelectedAdmin(null);
             setModalVisible(false);
         } catch (error) {
             console.error('❌ Failed to send message:', error);
@@ -487,49 +510,125 @@ const Messaging: React.FC = () => {
                 <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>New Message</Text>
 
-                    <View style={styles.modalSection}>
-                        <Text style={styles.modalLabel}>Select Retailer:</Text>
-
+                    {/* Tab System */}
+                    <View style={styles.tabContainer}>
                         <TouchableOpacity
-                            style={styles.dropdownSelector}
-                            onPress={() => setDropdownOpen(!dropdownOpen)}
+                            style={[styles.tab, activeTab === 'retailers' && styles.activeTab]}
+                            onPress={() => setActiveTab('retailers')}
                         >
-                            <Text style={styles.dropdownText}>
-                                {selectedRetailer ? selectedRetailer.businessName : 'Select a retailer'}
+                            <Text style={[styles.tabText, activeTab === 'retailers' && styles.activeTabText]}>
+                                Retailers
                             </Text>
                         </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'admins' && styles.activeTab]}
+                            onPress={() => setActiveTab('admins')}
+                        >
+                            <Text style={[styles.tabText, activeTab === 'admins' && styles.activeTabText]}>
+                                Admins
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
 
-                        {dropdownOpen && (
-                            <View style={styles.dropdown}>
-                                <TextInput
-                                    placeholder="Search retailer..."
-                                    placeholderTextColor="#333"
-                                    value={searchText}
-                                    onChangeText={setSearchText}
-                                    style={styles.searchInput}
-                                />
+                    <View style={styles.modalSection}>
+                        <Text style={styles.modalLabel}>
+                            Select {activeTab === 'retailers' ? 'Retailer' : 'Admin'}:
+                        </Text>
 
-                                {filteredRetailers.length === 0 ? (
-                                    <Text style={styles.emptyText}>No retailers found.</Text>
-                                ) : (
-                                    <FlatList
-                                        data={filteredRetailers}
-                                        keyExtractor={item => item.id}
-                                        renderItem={({ item }) => (
-                                            <TouchableOpacity
-                                                style={styles.dropdownItem}
-                                                onPress={() => {
-                                                    setSelectedRetailer(item);
-                                                    setDropdownOpen(false);
-                                                    setSearchText('');
-                                                }}
-                                            >
-                                                <Text style={styles.retailerName}>{item.businessName}</Text>
-                                            </TouchableOpacity>
+                        {activeTab === 'retailers' ? (
+                            <>
+                                <TouchableOpacity
+                                    style={styles.dropdownSelector}
+                                    onPress={() => setDropdownOpen(!dropdownOpen)}
+                                >
+                                    <Text style={styles.dropdownText}>
+                                        {selectedRetailer ? selectedRetailer.businessName : 'Select a retailer'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {dropdownOpen && (
+                                    <View style={styles.dropdown}>
+                                        <TextInput
+                                            placeholder="Search retailer..."
+                                            placeholderTextColor="#333"
+                                            value={searchText}
+                                            onChangeText={setSearchText}
+                                            style={styles.searchInput}
+                                        />
+
+                                        {filteredRetailers.length === 0 ? (
+                                            <Text style={styles.emptyText}>No retailers found.</Text>
+                                        ) : (
+                                            <FlatList
+                                                data={filteredRetailers}
+                                                keyExtractor={item => item.id}
+                                                renderItem={({ item }) => (
+                                                    <TouchableOpacity
+                                                        style={styles.dropdownItem}
+                                                        onPress={() => {
+                                                            setSelectedRetailer(item);
+                                                            setSelectedAdmin(null);
+                                                            setDropdownOpen(false);
+                                                            setSearchText('');
+                                                        }}
+                                                    >
+                                                        <Text style={styles.retailerName}>{item.businessName}</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                            />
                                         )}
-                                    />
+                                    </View>
                                 )}
-                            </View>
+                            </>
+                        ) : (
+                            <>
+                                <TouchableOpacity
+                                    style={styles.dropdownSelector}
+                                    onPress={() => setDropdownOpen(!dropdownOpen)}
+                                >
+                                    <Text style={styles.dropdownText}>
+                                        {selectedAdmin ? selectedAdmin.AdminName : 'Select an admin'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {dropdownOpen && (
+                                    <View style={styles.dropdown}>
+                                        <TextInput
+                                            placeholder="Search admin..."
+                                            placeholderTextColor="#333"
+                                            value={searchText}
+                                            onChangeText={setSearchText}
+                                            style={styles.searchInput}
+                                        />
+
+                                        {admins.filter(a => 
+                                            a.AdminName.toLowerCase().includes(searchText.toLowerCase())
+                                        ).length === 0 ? (
+                                            <Text style={styles.emptyText}>No admins found.</Text>
+                                        ) : (
+                                            <FlatList
+                                                data={admins.filter(a => 
+                                                    a.AdminName.toLowerCase().includes(searchText.toLowerCase())
+                                                )}
+                                                keyExtractor={item => item.id}
+                                                renderItem={({ item }) => (
+                                                    <TouchableOpacity
+                                                        style={styles.dropdownItem}
+                                                        onPress={() => {
+                                                            setSelectedAdmin(item);
+                                                            setSelectedRetailer(null);
+                                                            setDropdownOpen(false);
+                                                            setSearchText('');
+                                                        }}
+                                                    >
+                                                        <Text style={styles.retailerName}>{item.AdminName}</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                            />
+                                        )}
+                                    </View>
+                                )}
+                            </>
                         )}
                     </View>
 
@@ -549,9 +648,11 @@ const Messaging: React.FC = () => {
                             onPress={() => {
                                 setModalVisible(false);
                                 setSelectedRetailer(null);
+                                setSelectedAdmin(null);
                                 setMessageText('');
                                 setDropdownOpen(false);
                                 setSearchText('');
+                                setActiveTab('retailers');
                             }}
                             style={styles.cancelButton}
                         >
@@ -561,9 +662,9 @@ const Messaging: React.FC = () => {
                             onPress={sendMessage}
                             style={[
                                 styles.confirmButton,
-                                (!selectedRetailer || !messageText.trim()) && styles.disabledButton
+                                (!selectedRetailer && !selectedAdmin || !messageText.trim()) && styles.disabledButton
                             ]}
-                            disabled={!selectedRetailer || !messageText.trim() || loading}
+                            disabled={(!selectedRetailer && !selectedAdmin) || !messageText.trim() || loading}
                         >
                             {loading ? (
                                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -925,6 +1026,29 @@ const styles = StyleSheet.create({
         padding: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
+    },
+    tabContainer: {
+        flexDirection: 'row',
+        marginBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
+    },
+    tab: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    activeTab: {
+        borderBottomWidth: 2,
+        borderBottomColor: '#00843D',
+    },
+    tabText: {
+        fontSize: 16,
+        color: '#666',
+    },
+    activeTabText: {
+        color: '#00843D',
+        fontWeight: '600',
     },
 });
 

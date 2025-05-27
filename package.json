@@ -12,6 +12,7 @@
   "dependencies": {
     "@invertase/react-native-apple-authentication": "^2.4.1",
     "@react-native-community/datetimepicker": "^8.3.0",
+    "@react-native-community/geolocation": "^3.4.0",
     "@react-native-firebase/app": "^21.14.0",
     "@react-native-firebase/auth": "^21.14.0",
     "@react-native-firebase/firestore": "^21.14.0",
@@ -32,6 +33,7 @@
     "react-native-gesture-handler": "^2.25.0",
     "react-native-google-button": "^0.1.0",
     "react-native-linear-gradient": "^2.8.3",
+    "react-native-maps": "^1.23.8",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-opencv": "^0.0.0",
     "react-native-paper": "^5.13.4",

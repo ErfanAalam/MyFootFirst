@@ -14,10 +14,10 @@ const Stack = createNativeStackNavigator<AuthStackParamList>();
 const AuthStack = () => (
   <SafeAreaView style={{ flex: 1, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }}>
     <StatusBar backgroundColor="#ffffff" barStyle="light-content" />
-    <Stack.Navigator 
-      screenOptions={{ 
+    <Stack.Navigator
+      screenOptions={{
         headerShown: true,
-        headerTitleStyle: { color: 'black' }, 
+        headerTitleStyle: { color: 'black' },
         headerTitleAlign: 'center',
         headerStyle: {
           backgroundColor: '#ffffff',

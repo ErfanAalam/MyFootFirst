@@ -30,6 +30,55 @@ interface InsolePricing {
   ComfortDiscount?: number;
 }
 
+// Add image gallery interface
+interface InsoleImages {
+  preview: string;
+  thumbnails: string[];
+}
+
+// Add image data for each insole type
+const insoleImages: Record<InsoleType, InsoleImages> = {
+  Sport: {
+    preview: 'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FSport%201.jpg?alt=media&token=5174e292-e874-4da8-8572-d583d66deda4',
+    thumbnails: [
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FSport%201.jpg?alt=media&token=5174e292-e874-4da8-8572-d583d66deda4',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FSport%202.jpg?alt=media&token=f3806d3c-b1f5-41f1-843a-36fc28b5f851',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FSport%204.jpg?alt=media&token=73bcf85b-f7c5-4f61-a0dd-65b704d34bb0',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FSport%205.jpg?alt=media&token=92f4e0ef-756e-42d9-b714-a3fe17ae3a21',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%201.jpg?alt=media&token=e7696206-72d7-403b-85db-44e5d2ad72ce',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%202.jpg?alt=media&token=e980f2c7-cccb-4806-8c63-105fda345f70',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%204.jpg?alt=media&token=c9d4072d-bbf8-4b25-b110-81d95395cdd7',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%205.jpg?alt=media&token=cc48e61e-a2ea-47fb-a83c-6f5dec8511ee',
+    ],
+  },
+  Active: {
+    preview: 'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FActive%201.jpg?alt=media&token=5fe6c496-2f53-4436-9409-056d195bc950',
+    thumbnails: [
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FActive%201.jpg?alt=media&token=5fe6c496-2f53-4436-9409-056d195bc950',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FActive%202.jpg?alt=media&token=860822dc-1109-4f02-b743-4d2968b4aca8',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FActive%203.jpg?alt=media&token=f98cd82c-5438-43ed-8268-a171bc602ee2',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FActive%205.jpg?alt=media&token=6269ed30-8248-4929-b70a-0465e0cf8082',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%201.jpg?alt=media&token=e7696206-72d7-403b-85db-44e5d2ad72ce',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%202.jpg?alt=media&token=e980f2c7-cccb-4806-8c63-105fda345f70',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%204.jpg?alt=media&token=c9d4072d-bbf8-4b25-b110-81d95395cdd7',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%205.jpg?alt=media&token=cc48e61e-a2ea-47fb-a83c-6f5dec8511ee',
+    ],
+  },
+  Comfort: {
+    preview: 'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FComfort%201.jpg?alt=media&token=d95a7d7e-070d-4ee8-8677-796950496d22',
+    thumbnails: [
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FComfort%201.jpg?alt=media&token=d95a7d7e-070d-4ee8-8677-796950496d22',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FComfort%202.jpg?alt=media&token=f70cc6e2-d243-4202-9cbe-22442b3887b1',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FComfort%203.jpg?alt=media&token=d9da7abf-6c91-411e-a19d-a3ea29445279',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FComfort%205.jpg?alt=media&token=595251e1-20ab-4571-8db2-4ba3ae87ff75',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%201.jpg?alt=media&token=e7696206-72d7-403b-85db-44e5d2ad72ce',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%202.jpg?alt=media&token=e980f2c7-cccb-4806-8c63-105fda345f70',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%204.jpg?alt=media&token=c9d4072d-bbf8-4b25-b110-81d95395cdd7',
+      'https://firebasestorage.googleapis.com/v0/b/my-foot-first.firebasestorage.app/o/InsoleImages%2FDress%205.jpg?alt=media&token=cc48e61e-a2ea-47fb-a83c-6f5dec8511ee',
+    ],
+  },
+};
+
 const insoleData = {
   Sport: {
     id: 'insole-sport',
@@ -82,7 +131,11 @@ const InsoleRecommendation = () => {
   const [shoeType, setShoeType] = useState('');
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showShoeTypeError, setShowShoeTypeError] = useState(false);
-  const [priceInEuro, setPriceInEuro] = useState(0);
+  const [selectedImages, setSelectedImages] = useState<Record<InsoleType, string>>({
+    Sport: insoleImages.Sport.preview,
+    Active: insoleImages.Active.preview,
+    Comfort: insoleImages.Comfort.preview,
+  });
 
   // Get the recommended insole type from navigation params
   const recommendedInsole = route.params.recommendedInsole;
@@ -181,9 +234,22 @@ const InsoleRecommendation = () => {
     }, 200);
   }, [CARD_WIDTH, SPACING]);
 
+  // Add function to handle image selection
+  const handleImageSelect = (insoleType: InsoleType, imageUrl: string) => {
+    setSelectedImages(prev => ({
+      ...prev,
+      [insoleType]: imageUrl
+    }));
+  };
+
   // Function to handle adding insole to cart
   const handleAddToCart = async (insoleType: InsoleType) => {
     if (!pricing) return;
+
+    if (isDressInsole && (!shoeType || shoeType.trim().split(' ').length > 5)) {
+      setShowShoeTypeError(true);
+      return;
+    }
 
     const insole = insoleData[insoleType];
     const originalPrice = pricing[insoleType] + pricing.Shipping;
@@ -206,7 +272,6 @@ const InsoleRecommendation = () => {
 
       // Convert price to EUR
       const priceInEuro = finalPrice * exchangeRate;
-      console.log(priceInEuro)
 
       // Format the insole data as expected by the cart context
       const product = {
@@ -226,7 +291,7 @@ const InsoleRecommendation = () => {
       };
 
       // Add to cart and navigate
-      console.log(product)
+      // console.log(product)
       addToCart(product);
 
 
@@ -305,7 +370,7 @@ const InsoleRecommendation = () => {
           {orderedTypes.map((type) => {
             const isRecommended = type === recommendedInsole;
             const insole = insoleData[type];
-            const price = pricing[type] + pricing.Shipping;;
+            const price = pricing[type] + pricing.Shipping;
 
             return (
               <View
@@ -322,7 +387,39 @@ const InsoleRecommendation = () => {
                   </View>
                 )}
                 <Text style={[styles.cardTitle, isRecommended && styles.recommendedTitle]}>{insole.name}</Text>
-                <Image source={insole.image} style={styles.insoleImage} resizeMode="cover" />
+
+                {/* Main Image Preview */}
+                <Image
+                  source={{ uri: selectedImages[type] }}
+                  style={styles.insoleImage}
+                  resizeMode="stretch"
+                />
+
+                {/* Thumbnail Gallery */}
+                <ScrollView
+                  showsVerticalScrollIndicator={true}
+                  style={styles.thumbnailContainer}
+                >
+                  <View style={styles.thumbnailGrid}>
+                    {insoleImages[type].thumbnails.map((thumbnail, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        onPress={() => handleImageSelect(type, thumbnail)}
+                        style={[
+                          styles.thumbnailWrapper,
+                          selectedImages[type] === thumbnail && styles.selectedThumbnail
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: thumbnail }}
+                          style={styles.thumbnail}
+                          resizeMode="stretch"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+
                 <View style={styles.priceContainer}>
                   {pricing[`${type}Discount` as keyof InsolePricing] ? (
                     <>
@@ -674,6 +771,33 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  thumbnailContainer: {
+    marginBottom: 15,
+    paddingHorizontal: 5,
+    width: '100%',
+  },
+  thumbnailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  thumbnailWrapper: {
+    width: '24%', // Leave a little space for margin
+    aspectRatio: 1,
+    margin: '0.5%',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    overflow: 'hidden',
+  },
+  selectedThumbnail: {
+    borderColor: '#4CAF50',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
   },
 });
 

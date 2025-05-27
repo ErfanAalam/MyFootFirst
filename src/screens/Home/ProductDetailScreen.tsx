@@ -259,7 +259,12 @@ const ProductDetailScreen = () => {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.descriptionText}>{product.description}</Text>
+            {product.description.split(',').map((item, index) => (
+              <View key={index} style={styles.bulletPointContainer}>
+                <Text style={styles.bulletPoint}>•</Text>
+                <Text style={styles.descriptionText}>{item.trim()}</Text>
+              </View>
+            ))}
           </View>
 
           <View style={styles.priceContainer}>
@@ -461,10 +466,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
+  bulletPointContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  bulletPoint: {
+    fontSize: 16,
+    marginRight: 8,
+    color: '#666',
+  },
   descriptionText: {
     fontSize: 14,
     lineHeight: 22,
     color: '#666',
+    flex: 1,
   },
   priceContainer: {
     marginVertical: 20,
