@@ -32,6 +32,7 @@ const FootScanScreen = () => {
     const [capturedImages, setCapturedImages] = useState<FootImage[]>([]);
     const [showPreview, setShowPreview] = useState(false);
     const [showSummary, setShowSummary] = useState(false);
+    const [showProgress, setShowProgress] = useState(false);
     const [currentImage, setCurrentImage] = useState<string | null>(null);
     const [currentFoot, setCurrentFoot] = useState<'left' | 'right'>('left');
     const [currentView, setCurrentView] = useState<'left' | 'right' | 'front'>('left');
@@ -260,6 +261,14 @@ const FootScanScreen = () => {
         };
     }, [currentView]); // Added currentView as dependency
 
+    // Add useEffect for delayed progress bar rendering
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setShowProgress(true);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleCapture = async () => {
         if (camera.current) {
@@ -520,7 +529,7 @@ const FootScanScreen = () => {
                 <View style={styles.footGuideHeader}>
                     <Text style={styles.footGuideTitle}>{currentFoot === 'left' ? 'Left' : 'Right'} Foot</Text>
                     <Text style={styles.footGuideSubtitle}>
-                        {currentView === 'left' ? 'Outside' : currentView === 'right' ? 'Inside' : 'Top'} view
+                        {currentView === 'left' ? 'Left' : currentView === 'right' ? 'Right' : 'Front'} view
                     </Text>
                 </View>
 
@@ -708,7 +717,7 @@ const FootScanScreen = () => {
 
                     <Modal visible={showWebView} animationType="slide">
                         <WebView
-                            source={{ uri: 'file:///android_asset/volumental.html' }}
+                            source={getVolumentalWebViewSource()}
                             originWhitelist={['*']}
                             style={{ flex: 1 }}
                             onMessage={handleMessage}
@@ -721,6 +730,15 @@ const FootScanScreen = () => {
                 </View>
             </View>
         );
+    };
+
+    const getVolumentalWebViewSource = () => {
+        if (Platform.OS === 'android') {
+            return { uri: 'file:///android_asset/volumental.html' };
+        } else {
+            // For iOS, the file should be in the main bundle
+            return { uri: 'volumental.html' };
+        }
     };
 
     if (!hasPermission) {
@@ -756,7 +774,7 @@ const FootScanScreen = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Scan Your Feet</Text>
-            {renderProgress()}
+            {showProgress && renderProgress()}
             {renderCamera()}
             <TouchableOpacity
                 style={styles.nextButton}
@@ -848,6 +866,9 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: '#00843D',
         borderRadius: 5,
+        marginBottom: 14,
+        width: '80%',
+        alignItems: 'center',
     },
     nextText: {
         color: '#fff',
@@ -930,7 +951,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 30,
         backgroundColor: '#ddd',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 5,
         borderRadius: 5,

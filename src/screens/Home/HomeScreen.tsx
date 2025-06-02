@@ -87,8 +87,8 @@ const HomeScreen = () => {
           painPoints: painPoints,
         });
 
-      // navigation.navigate('FootScanScreen');
-      navigation.navigate('InsoleQuestions');
+      navigation.navigate('FootScanScreen');
+      // navigation.navigate('InsoleQuestions');
     } catch (error) {
       showAlert('Error', 'Failed to save pain points', 'error');
     }

@@ -59,30 +59,33 @@ const AppTabs = () => (
             </View>
           );
         },
-        tabBarLabel: ({ focused, color }) => {
-          let label = '';
-
-          if (route.name === 'Home') {
-            label = 'Home';
-          } else if (route.name === 'Profile') {
-            label = 'Profile';
-          } else if (route.name === 'Education') {
-            label = 'Education';
-          } else if (route.name === 'Ecommerce') {
-            label = 'Shop';
-          }
-
-          return (
-            <Text
-              style={[
-                styles.tabLabel,
-                { color: focused ? "black" : "white" }
-              ]}
-            >
-              {label}
-            </Text>
-          );
+        tabBarLabelStyle: {
+          display: 'none',
         },
+        // tabBarLabel: ({ focused, color }) => {
+        //   let label = '';
+
+        //   if (route.name === 'Home') {
+        //     label = 'Home';
+        //   } else if (route.name === 'Profile') {
+        //     label = 'Profile';
+        //   } else if (route.name === 'Education') {
+        //     label = 'Education';
+        //   } else if (route.name === 'Ecommerce') {
+        //     label = 'Shop';
+        //   }
+
+        //   return (
+        //     <Text
+        //       style={[
+        //         styles.tabLabel,
+        //         { color: focused ? "black" : "white" }
+        //       ]}
+        //     >
+        //       {label}
+        //     </Text>
+        //   );
+        // },
         tabBarActiveTintColor: 'black',
         tabBarInactiveTintColor: 'white',
       })}
