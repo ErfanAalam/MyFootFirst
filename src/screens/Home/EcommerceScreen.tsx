@@ -15,7 +15,7 @@ type Category = {
 type RootStackParamList = {
   CategoryProducts: { category: string };
   MainTabs: undefined;
-  Cart: undefined;
+  Cart: { fromEcommerce: boolean };
 };
 
 type NavigationProps = NativeStackNavigationProp<RootStackParamList>;
@@ -93,7 +93,7 @@ const EcommerceScreen = () => {
 
         <TouchableOpacity
           style={styles.cartButton}
-          onPress={() => navigation.navigate('Cart')}
+          onPress={() => navigation.navigate('Cart', { fromEcommerce: true })}
           activeOpacity={0.7}
         >
           <View style={styles.iconButton}>

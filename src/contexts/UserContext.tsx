@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { getFirestore, doc, getDoc, updateDoc } from '@react-native-firebase/firestore';
-import {getAuth, FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { getAuth, FirebaseAuthTypes } from '@react-native-firebase/auth';
 
 
 interface UserData {
@@ -13,6 +13,7 @@ interface UserData {
   country?: string;
   phone?: string;
   dob?: string;
+  maxStepReached?: number;
 }
 
 interface UserContextType {
@@ -21,6 +22,7 @@ interface UserContextType {
   loading: boolean;
   updateUserData: (data: Partial<UserData>) => Promise<void>;
   saveInsoleAnswers: (answers: Record<string, any>) => Promise<void>;
+  updateUserStep: (step: number, isDirectCartAccess?: boolean) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -66,6 +68,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           country: data.country || '',
           phone: data.phone || '',
           dob: data.dob || '',
+          maxStepReached: data.maxStepReached || 0,
           ...data,
         });
       }
@@ -93,7 +96,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const saveInsoleAnswers = async (answers: Record<string, any>): Promise<void> => {
-    if (!user){
+    if (!user) {
       return;
     }
 
@@ -116,6 +119,34 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateUserStep = async (step: number, isDirectCartAccess: boolean = false) => {
+    if (!user || !userData) return;
+
+    try {
+      const firestore = getFirestore();
+      const userDocRef = doc(firestore, 'users', user.uid);
+
+      // If it's direct cart access (not through insole flow), don't update step
+      if (isDirectCartAccess) return;
+
+      // Get current max step
+      const userDoc = await getDoc(userDocRef);
+      const currentMaxStep = userDoc.data()?.maxStepReached || 0;
+
+      // Only update if new step is higher than current max step
+      if (step > currentMaxStep) {
+        await updateDoc(userDocRef, {
+          maxStepReached: step,
+        });
+
+        // Update local state
+        setUserData(prev => prev ? { ...prev, maxStepReached: step } : null);
+      }
+    } catch (error) {
+      console.error('Error updating user step:', error);
+    }
+  };
+
   const value = {
     user,
     userData,
@@ -124,6 +155,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     saveInsoleAnswers,
     hasProfile,
     setHasProfile,
+    updateUserStep,
   };
 
   return (

@@ -9,7 +9,6 @@ import {
   Image,
 } from 'react-native';
 // import { WebView } from 'react-native-webview';
-import { Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -38,9 +37,9 @@ type Category = {
 
 const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { userData } = useUser();
+  const { userData, updateUserStep } = useUser();
   const [selectedFoot, setSelectedFoot] = useState<'left' | 'right'>('left');
-  const [painPoints, setPainPoints] = useState<string[]>([]);
+  const [painPoints, setPainPoints] = useState<string[]>(['no-pain']);
   const [categories, setCategories] = useState<Category[]>([]);
   const [alertModal, setAlertModal] = useState({
     visible: false,
@@ -63,11 +62,16 @@ const HomeScreen = () => {
   };
 
   const handlePainPointSelection = (pointId: string) => {
-    setPainPoints((prev) =>
-      prev.includes(pointId)
-        ? prev.filter((id) => id !== pointId)
-        : [...prev, pointId]
-    );
+    if (pointId === 'no-pain') {
+      setPainPoints(['no-pain']);
+    } else {
+      setPainPoints((prev) => {
+        const filtered = prev.filter(id => id !== 'no-pain');
+        return prev.includes(pointId)
+          ? filtered.filter((id) => id !== pointId)
+          : [...filtered, pointId];
+      });
+    }
   };
 
   const handleScanFoot = async () => {
@@ -80,15 +84,18 @@ const HomeScreen = () => {
         return;
       }
 
+      const painPointsToStore = painPoints.includes('no-pain') && painPoints.length === 1 
+        ? [] 
+        : painPoints.filter(point => point !== 'no-pain');
+
       await firestore()
         .collection('users')
         .doc(user.uid)
         .update({
-          painPoints: painPoints,
+          painPoints: painPointsToStore,
         });
 
       navigation.navigate('FootScanScreen');
-      // navigation.navigate('InsoleQuestions');
     } catch (error) {
       showAlert('Error', 'Failed to save pain points', 'error');
     }
@@ -115,6 +122,11 @@ const HomeScreen = () => {
 
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    // Update step to 1 when component mounts
+    updateUserStep(1);
+  }, [updateUserStep]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -192,7 +204,6 @@ const HomeScreen = () => {
                       style={styles.categoryImage}
                       resizeMode="cover"
                     />
-                    <View style={styles.overlay} />
                   </View>
                   <View style={styles.categoryContent}>
                     <Text style={styles.categoryTitle} numberOfLines={2}>
@@ -358,14 +369,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#f0f0f0',
-  },
-  overlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 40,
-    background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
   },
   categoryContent: {
     padding: 20,

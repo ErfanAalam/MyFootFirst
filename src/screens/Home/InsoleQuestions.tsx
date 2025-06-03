@@ -79,7 +79,7 @@ const calculateAgeGroup = (dob: string): string => {
 
 const InsoleQuestions = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { userData } = useUser();
+  const { userData, updateUserStep } = useUser();
   const [answers, setAnswers] = useState<AnswerType>({
     ageGroup: '',
     activityLevel: '',
@@ -114,6 +114,12 @@ const InsoleQuestions = () => {
       }
     }
   }, [userData]);
+
+  // Add useEffect for step tracking
+  useEffect(() => {
+    // Update step to 4 when component mounts
+    updateUserStep(4);
+  }, [updateUserStep]);
 
   const updateAnswer = (field: keyof AnswerType, value: string) => {
     setAnswers(prev => ({ ...prev, [field]: value }));

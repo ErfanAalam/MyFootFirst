@@ -126,7 +126,7 @@ const InsoleRecommendation = () => {
   const { addToCart } = useCart();
   const [pricing, setPricing] = useState<InsolePricing | null>(null);
   const [loading, setLoading] = useState(true);
-  const { userData } = useUser();
+  const { userData, updateUserStep } = useUser();
   const [isDressInsole, setIsDressInsole] = useState(false);
   const [shoeType, setShoeType] = useState('');
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -233,6 +233,12 @@ const InsoleRecommendation = () => {
       });
     }, 200);
   }, [CARD_WIDTH, SPACING]);
+
+  // Add useEffect for step tracking
+  useEffect(() => {
+    // Update step to 5 when component mounts
+    updateUserStep(5);
+  }, [updateUserStep]);
 
   // Add function to handle image selection
   const handleImageSelect = (insoleType: InsoleType, imageUrl: string) => {

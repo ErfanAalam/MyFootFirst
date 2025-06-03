@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform, StatusBar, FlatList } from 'react-native';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, Platform, StatusBar, Modal } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCart } from '../../contexts/CartContext';
+import CustomAlertModal from '../../Components/CustomAlertModal';
 
 // Define types
 interface Product {
@@ -23,293 +24,262 @@ interface Product {
 type RootStackParamList = {
   ProductDetail: { product: Product };
   MainTabs: undefined;
-  Cart: undefined;
+  Cart: { fromProductDetail: boolean };
 };
 
 type ProductDetailRouteProp = RouteProp<RootStackParamList, 'ProductDetail'>;
 type NavigationProps = NativeStackNavigationProp<RootStackParamList>;
 
 const ProductDetailScreen = () => {
-  const route = useRoute<ProductDetailRouteProp>();
   const navigation = useNavigation<NavigationProps>();
+  const route = useRoute<ProductDetailRouteProp>();
   const { product } = route.params;
-  const { addToCart, items, updateQuantity, removeFromCart } = useCart();
+
+  const { addToCart, items } = useCart();
+  const [quantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState<string>(Object.keys(product.colorImages)[0]);
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info' as 'success' | 'error' | 'info',
+  });
+  const [sizeModalVisible, setSizeModalVisible] = useState(false);
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertModal({
+      visible: true,
+      title,
+      message,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertModal(prev => ({ ...prev, visible: false }));
+  };
 
   // Extract available colors from colorImages
   const availableColors = useMemo(() => {
-    return Object.keys(product.colorImages || {});
+    return Object.keys(product.colorImages);
   }, [product.colorImages]);
-
-  // State for selected color and image
-  const [selectedColor, setSelectedColor] = useState(availableColors[0] || '');
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
-
-  // Get images for selected color
-  const selectedColorImages = useMemo(() => {
-    return product.colorImages?.[selectedColor] || [];
-  }, [product.colorImages, selectedColor]);
-
-  // Get currently selected image URL
-  const mainImageUrl = useMemo(() => {
-    return selectedColorImages[selectedImageIndex] || '';
-  }, [selectedColorImages, selectedImageIndex]);
-
-  const selectedSize = useMemo(() => {
-    return product.sizes?.[selectedSizeIndex] || '';
-  }, [product.sizes, selectedSizeIndex]);
-
-  // Check if product is already in cart
-  const cartItem = useMemo(() => {
-    return items.find(item => item.id === product.id);
-  }, [items, product.id]);
 
   const handleColorSelect = (color: string) => {
     setSelectedColor(color);
-    setSelectedImageIndex(0); // Reset to first image when color changes
+    setSelectedImageIndex(0);
   };
 
   const handleImageSelect = (index: number) => {
     setSelectedImageIndex(index);
   };
 
-  const renderColorVariation = (color: string, index: number) => {
-    const isSelected = color === selectedColor;
-    const firstImageOfColor = product.colorImages?.[color]?.[0] || '';
+  const renderColorVariation = (color: string, _index: number) => (
+    <TouchableOpacity
+      key={color}
+      style={[
+        styles.colorOption,
+        selectedColor === color && styles.selectedColorOption,
+      ]}
+      onPress={() => handleColorSelect(color)}
+    >
+      <View style={[styles.colorCircle, { backgroundColor: color.toLowerCase() }]} />
+      <Text style={[
+        styles.colorText,
+        selectedColor === color && styles.selectedColorText
+      ]}>
+        {color}
+      </Text>
+    </TouchableOpacity>
+  );
 
-    return (
+  const renderSizeDropdown = () => (
+    <TouchableOpacity
+      style={styles.sizeDropdown}
+      onPress={() => setSizeModalVisible(true)}
+    >
+      <Text style={[styles.sizeDropdownText, !selectedSize && styles.placeholderText]}>
+        {selectedSize || 'Select Size'}
+      </Text>
+      <Text style={styles.dropdownArrow}>▼</Text>
+    </TouchableOpacity>
+  );
+
+  const renderSizeModal = () => (
+    <Modal
+      visible={sizeModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setSizeModalVisible(false)}
+    >
       <TouchableOpacity
-        key={index}
-        style={styles.variationItem}
-        onPress={() => handleColorSelect(color)}
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setSizeModalVisible(false)}
       >
-        <View
-          style={[
-            styles.colorSwatch,
-            { borderColor: isSelected ? '#00843D' : '#ddd', borderWidth: isSelected ? 2 : 1 }
-          ]}
-        >
-          {firstImageOfColor ? (
-            <Image
-              source={{ uri: firstImageOfColor }}
-              style={styles.colorThumbnail}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.colorFill, { backgroundColor: color }]} />
-          )}
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Size</Text>
+            <TouchableOpacity onPress={() => setSizeModalVisible(false)}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.sizeList}>
+            {product.sizes.map((size) => (
+              <TouchableOpacity
+                key={size}
+                style={[
+                  styles.sizeOption,
+                  selectedSize === size && styles.selectedSizeOption
+                ]}
+                onPress={() => {
+                  setSelectedSize(size);
+                  setSizeModalVisible(false);
+                }}
+              >
+                <Text style={[
+                  styles.sizeText,
+                  selectedSize === size && styles.selectedSizeText
+                ]}>
+                  {size}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-        <Text style={[
-          styles.variationText,
-          { fontWeight: isSelected ? '700' : '400' }
-        ]}>
-          {color}
-        </Text>
       </TouchableOpacity>
-    );
-  };
+    </Modal>
+  );
 
-  const handleSizeSelect = (size: string) => {
-    setSelectedSizeIndex(product.sizes.indexOf(size));
-  };
-
-  const renderSizeVariation = (size: string, index: number) => {
-    const isSelected = size === selectedSize;
-    return (
-      <TouchableOpacity
-        key={index}
-        style={styles.variationItem}
-        onPress={() => handleSizeSelect(size)}
-      >
-        <View style={[
-          styles.sizeBox,
-          { backgroundColor: isSelected ? '#00843D' : '#f2f2f2', paddingHorizontal: 10, paddingVertical: 10,alignItems:'center',justifyContent:'center' }
-        ]}>
-          <Text style={[
-            styles.sizeText,
-            { color: isSelected ? '#fff' : '#333' }
-          ]}>
-            {size}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderImageThumbnail = ({ item, index }: { item: string, index: number }) => {
-    const isSelected = index === selectedImageIndex;
-
-    return (
-      <TouchableOpacity
-        onPress={() => handleImageSelect(index)}
-        style={[
-          styles.thumbnailContainer,
-          isSelected && styles.selectedThumbnailContainer
-        ]}
-      >
-        <Image
-          source={{ uri: item }}
-          style={styles.thumbnailImage}
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
-    );
-  };
+  const renderImageThumbnail = ({ item, index }: { item: string, index: number }) => (
+    <TouchableOpacity
+      style={[
+        styles.thumbnailContainer,
+        selectedImageIndex === index && styles.selectedThumbnail
+      ]}
+      onPress={() => handleImageSelect(index)}
+    >
+      <Image
+        source={{ uri: item }}
+        style={styles.thumbnail}
+        resizeMode="cover"
+      />
+    </TouchableOpacity>
+  );
 
   const handleAddToCart = () => {
-    const productToAdd = {
+    if (!selectedSize) {
+      showAlert('Error', 'Please select a size', 'error');
+      return;
+    }
+
+    const cartProduct = {
       ...product,
       selectedColor,
-      selectedImage: mainImageUrl,
       selectedSize,
-      price: product.price,
-      newPrice: product.newPrice,
-      priceValue: product.priceValue,
-      discountedPrice: product.discountedPrice,
-      discountedPriceValue: product.discountedPriceValue,
+      quantity,
+      selectedImage: product.colorImages[selectedColor][selectedImageIndex],
     };
-    console.log(productToAdd);
-    addToCart(productToAdd);
-  };
 
-  const handleIncreaseQuantity = () => {
-    if (cartItem) {
-      updateQuantity(product.id, cartItem.quantity + 1);
-    }
-  };
-
-  const handleDecreaseQuantity = () => {
-    if (cartItem && cartItem.quantity > 1) {
-      updateQuantity(product.id, cartItem.quantity - 1);
-    } else if (cartItem) {
-      removeFromCart(product.id);
-    }
+    addToCart(cartProduct);
+    navigation.navigate('Cart', { fromProductDetail: true });
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Image
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/130/130882.png' }}
-            style={styles.backIcon}
-          />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <View style={styles.iconContainer}>
+            <Text style={styles.backArrow}>←</Text>
+          </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Product Details</Text>
-        <TouchableOpacity style={styles.cartButton} onPress={() => navigation.navigate('Cart')}>
-          <Image
-            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/263/263142.png' }}
-            style={styles.cartIcon}
-          />
+        <TouchableOpacity
+          style={styles.cartButton}
+          onPress={() => navigation.navigate('Cart', { fromProductDetail: true })}
+        >
+          <View style={styles.iconContainer}>
+            <Text style={styles.cartIcon}>🛒</Text>
+            {items.length > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartCounter}>{items.length}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
-        {items.length > 0 && (
-          <Text style={styles.cartCounter}>{items.length}</Text>
-        )}
       </View>
 
-      <ScrollView>
-        <View style={styles.imageHeader}>
-          {mainImageUrl ? (
-            <Image
-              source={{ uri: mainImageUrl }}
-              style={styles.productImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.imagePlaceholder} />
-          )}
-        </View>
+      <ScrollView style={styles.content}>
+        {/* Main product image */}
+        <Image
+          source={{ uri: product.colorImages[selectedColor][selectedImageIndex] }}
+          style={styles.mainImage}
+          resizeMode="cover"
+        />
 
-        {/* Thumbnails for the selected color */}
-        {selectedColorImages.length > 0 && (
-          <View style={styles.thumbnailsContainer}>
-            <FlatList
-              data={selectedColorImages}
-              renderItem={renderImageThumbnail}
-              keyExtractor={(item, index) => `${selectedColor}-image-${index}`}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.thumbnailsContent}
-            />
-          </View>
-        )}
-
-        <View style={styles.contentContainer}>
-          <View style={styles.productInfo}>
-            <Text style={styles.productTitle}>{product.title}</Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Colors</Text>
-            <View style={styles.variationsContainer}>
-              {availableColors.map((color, index) =>
-                renderColorVariation(color, index)
-              )}
+        {/* Thumbnail gallery */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.thumbnailGallery}
+        >
+          {product.colorImages[selectedColor].map((image, index) => (
+            <View key={index}>
+              {renderImageThumbnail({ item: image, index })}
             </View>
-          </View>
+          ))}
+        </ScrollView>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sizes</Text>
-            <View style={styles.variationsContainer} >
-              {product.sizes && product.sizes.map((size, index) =>
-                renderSizeVariation(size, index)
-              )}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            {product.description.split(',').map((item, index) => (
-              <View key={index} style={styles.bulletPointContainer}>
-                <Text style={styles.bulletPoint}>•</Text>
-                <Text style={styles.descriptionText}>{item.trim()}</Text>
-              </View>
-            ))}
-          </View>
+        {/* Product details */}
+        <View style={styles.detailsContainer}>
+          <Text style={styles.productTitle}>{product.title}</Text>
 
           <View style={styles.priceContainer}>
             {product.discountedPrice ? (
-              <View style={styles.discountedPriceContainer}>
+              <>
                 <Text style={styles.originalPrice}>{product.newPrice}</Text>
                 <Text style={styles.discountedPrice}>{product.discountedPrice}</Text>
-              </View>
+              </>
             ) : (
-              <Text style={styles.priceValue}>{product.newPrice}</Text>
+              <Text style={styles.price}>{product.newPrice}</Text>
             )}
           </View>
 
-          {cartItem ? (
-            <>
-              <View style={styles.quantityContainer}>
-                <TouchableOpacity
-                  style={styles.quantityButton}
-                  onPress={handleDecreaseQuantity}
-                >
-                  <Text style={styles.quantityButtonText}>-</Text>
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{cartItem.quantity}</Text>
-                <TouchableOpacity
-                  style={styles.quantityButton}
-                  onPress={handleIncreaseQuantity}
-                >
-                  <Text style={styles.quantityButtonText}>+</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                style={styles.viewCartButton}
-                onPress={() => navigation.navigate('Cart')}
-              >
-                <Text style={styles.viewCartButtonText}>View Cart</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <TouchableOpacity style={styles.addButton} onPress={handleAddToCart}>
-              <Text style={styles.addButtonText}>Add to Cart</Text>
-            </TouchableOpacity>
-          )}
+          <Text style={styles.sectionTitle}>Color</Text>
+          <View style={styles.colorOptions}>
+            {availableColors.map(renderColorVariation)}
+          </View>
+
+          <Text style={styles.sectionTitle}>Size</Text>
+          {renderSizeDropdown()}
+          {renderSizeModal()}
+
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.description}>{product.description}</Text>
         </View>
       </ScrollView>
-    </View>
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.addToCartButton}
+          onPress={handleAddToCart}
+        >
+          <Text style={styles.addToCartText}>Add to Cart</Text>
+        </TouchableOpacity>
+      </View>
+
+      <CustomAlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={hideAlert}
+      />
+    </SafeAreaView>
   );
 };
 
@@ -320,70 +290,155 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    marginTop: Platform.OS === 'ios' ? 0 : StatusBar.currentHeight,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    letterSpacing: -0.5,
   },
   backButton: {
-    padding: 6,
-  },
-  backIcon: {
-    width: 20,
-    height: 20,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cartButton: {
-    padding: 6,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  backArrow: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#374151',
   },
   cartIcon: {
-    width: 24,
-    height: 24,
+    fontSize: 20,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   cartCounter: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 12,
-    fontWeight: '600',
-    position: 'absolute',
-    backgroundColor: '#00843D',
-    right: 10,
-    top: 10,
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 100,
-    height: 20,
-    width: 20,
-    textAlign: 'center',
-    padding: 2,
+    fontWeight: '700',
+    lineHeight: 16,
   },
-  imageHeader: {
+  sizeDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  sizeDropdownText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  placeholderText: {
+    color: '#9ca3af',
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  closeButton: {
+    fontSize: 20,
+    color: '#6b7280',
+    padding: 4,
+  },
+  sizeList: {
+    padding: 16,
+  },
+  sizeOption: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  selectedSizeOption: {
+    backgroundColor: '#00843D',
+  },
+  sizeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    textAlign: 'center',
+  },
+  selectedSizeText: {
+    color: '#ffffff',
+  },
+  content: {
+    padding: 16,
+  },
+  mainImage: {
+    width: '100%',
     height: 400,
     backgroundColor: '#f5f5f5',
-    width: '100%',
   },
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#e0e0e0',
-  },
-  thumbnailsContainer: {
-    backgroundColor: '#fff',
+  thumbnailGallery: {
     paddingVertical: 10,
-  },
-  thumbnailsContent: {
-    paddingHorizontal: 16,
   },
   thumbnailContainer: {
     width: 60,
@@ -394,27 +449,42 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     overflow: 'hidden',
   },
-  selectedThumbnailContainer: {
+  selectedThumbnail: {
     borderColor: '#00843D',
     borderWidth: 2,
   },
-  thumbnailImage: {
+  thumbnail: {
     width: '100%',
     height: '100%',
   },
-  contentContainer: {
-    padding: 16,
-  },
-  productInfo: {
+  detailsContainer: {
     marginBottom: 20,
   },
   productTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#333',
-  },
-  section: {
     marginBottom: 20,
+  },
+  priceContainer: {
+    marginBottom: 20,
+  },
+  originalPrice: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#FF0000',
+    textDecorationLine: 'line-through',
+    marginRight: 12,
+  },
+  discountedPrice: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#00843D',
+  },
+  price: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#333',
   },
   sectionTitle: {
     fontSize: 18,
@@ -422,17 +492,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#333',
   },
-  variationsContainer: {
+  colorOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  variationItem: {
+  colorOption: {
     alignItems: 'center',
-    // width: 60,
     marginRight: 12,
     marginBottom: 12,
   },
-  colorSwatch: {
+  colorCircle: {
     width: 40,
     height: 40,
     borderRadius: 25,
@@ -440,121 +509,39 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 8,
   },
-  colorThumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  colorFill: {
-    width: '100%',
-    height: '100%',
-  },
-  variationText: {
+  colorText: {
     fontSize: 12,
     textAlign: 'center',
     color: '#666',
   },
-  sizeBox: {
-    height: 50,
-    borderRadius: 10,
-    backgroundColor: '#f2f2f2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+  selectedColorOption: {
+    borderColor: '#00843D',
+    borderWidth: 2,
+    padding:10,
+    borderRadius:20,
   },
-  sizeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+  selectedColorText: {
+    fontWeight: '700',
   },
-  bulletPointContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  bulletPoint: {
-    fontSize: 16,
-    marginRight: 8,
-    color: '#666',
-  },
-  descriptionText: {
+  description: {
     fontSize: 14,
     lineHeight: 22,
     color: '#666',
-    flex: 1,
   },
-  priceContainer: {
-    marginVertical: 20,
+  footer: {
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
   },
-  discountedPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  originalPrice: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: '#FF0000',
-    textDecorationLine: 'line-through',
-  },
-  discountedPrice: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#00843D',
-  },
-  priceValue: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#333',
-  },
-  addButton: {
+  addToCartButton: {
     backgroundColor: '#00843D',
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 20,
   },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    backgroundColor: '#00843D',
-    borderRadius: 10,
-  },
-  quantityButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 15,
-  },
-  quantityButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  quantityText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    minWidth: 30,
-    textAlign: 'center',
-  },
-  viewCartButton: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  viewCartButtonText: {
-    color: '#007AFF',
+  addToCartText: {
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert, Image, ScrollView, Animated, Platform, Button, Modal, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image, ScrollView, Animated, Platform, Button, Modal, ActivityIndicator } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { useNavigation } from '@react-navigation/native';
 import { accelerometer, SensorTypes, setUpdateIntervalForType } from 'react-native-sensors';
@@ -11,6 +11,7 @@ import storage from '@react-native-firebase/storage';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import CustomAlertModal from '../../Components/CustomAlertModal';
+import { useUser } from '../../contexts/UserContext';
 
 
 // Define the types for our foot images
@@ -43,6 +44,7 @@ const FootScanScreen = () => {
     const device = useCameraDevice('back');
     const camera = useRef<Camera>(null);
     const { width, height } = Dimensions.get('window');
+    const { updateUserStep } = useUser();
 
 
     // volumental webview page
@@ -75,6 +77,9 @@ const FootScanScreen = () => {
 
         if (data.event === 'OnMeasurement') {
             try {
+                // Update step to 3 when webview opens
+                updateUserStep(3);
+
                 // Get access token
                 const tokenResponse = await axios.post(
                     'https://login.volumental.com/oauth/token',
@@ -186,7 +191,7 @@ const FootScanScreen = () => {
     }
 
 
-    const checkOrientation = (x: number, y: number, z: number): boolean => {
+    const checkOrientation = useCallback((x: number, y: number, z: number): boolean => {
         // Calculate tilt angle using arctan2
         const tiltAngle = radToDeg(Math.atan2(x, z));
         const forwardTilt = radToDeg(Math.atan2(y, z));
@@ -236,7 +241,8 @@ const FootScanScreen = () => {
             default:
                 return false;
         }
-    };
+    }, [currentView, currentFoot]);
+
 
     useEffect(() => {
         let accelerometerSubscription: Subscription;
@@ -259,7 +265,7 @@ const FootScanScreen = () => {
                 accelerometerSubscription.unsubscribe();
             }
         };
-    }, [currentView]); // Added currentView as dependency
+    }, [currentView, checkOrientation]);
 
     // Add useEffect for delayed progress bar rendering
     useEffect(() => {
@@ -269,6 +275,11 @@ const FootScanScreen = () => {
 
         return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        // Update step to 2 when component mounts
+        updateUserStep(2);
+    }, [updateUserStep]);
 
     const handleCapture = async () => {
         if (camera.current) {

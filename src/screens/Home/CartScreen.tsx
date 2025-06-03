@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCart } from '../../contexts/CartContext';
 import { useUser } from '../../contexts/UserContext';
 import firestore from '@react-native-firebase/firestore';
@@ -34,19 +34,11 @@ type RootStackParamList = {
 
 type NavigationProps = NavigationProp<RootStackParamList>;
 
-// Add type for UserData
-interface UserData {
-  id: string;
-  name?: string;
-  firstName?: string;
-  phone?: string;
-  country?: string;
-}
-
 const CartScreen = () => {
   const { items, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart();
-  const { userData } = useUser() as { userData: UserData };
+  const { userData, updateUserStep } = useUser();
   const navigation = useNavigation<NavigationProps>();
+  const route = useRoute();
   // console.log(items)
 
   const [checkoutUrl, setCheckoutUrl] = useState('');
@@ -107,6 +99,18 @@ const CartScreen = () => {
     // Reset order processed ref when component mounts
     orderProcessedRef.current = false;
   }, [userData, fetchUserAddress]);
+
+  // Add useEffect for step tracking
+  useEffect(() => {
+    // Check if we came from Ecommerce or Product Detail screens
+    const params = route.params as { fromEcommerce?: boolean; fromProductDetail?: boolean } | undefined;
+    const isDirectAccess = params?.fromEcommerce || params?.fromProductDetail;
+
+    // Only update step if not direct access
+    if (!isDirectAccess) {
+      updateUserStep(6);
+    }
+  }, [updateUserStep, route.params]);
 
   const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setAlertModal({
@@ -288,9 +292,6 @@ const CartScreen = () => {
       if (orderStored) {
         setCheckoutUrl('');
         showAlert('Success', 'Payment successful and order placed!', 'success');
-        // setTimeout(() => {
-        //   navigation.navigate('OrderHistory');
-        // }, 300);
       } else {
         showAlert('Error', 'Payment successful but failed to store order. Please contact support.', 'error');
         setCheckoutUrl('');
@@ -299,7 +300,7 @@ const CartScreen = () => {
       showAlert('Payment Canceled', 'Your payment was canceled.', 'info');
       setCheckoutUrl('');
     }
-  }, [navigation, storeOrderData]);
+  }, [storeOrderData]);
 
   const handleIncreaseQuantity = (productId: string) => {
     const item = items.find(item => item.id === productId);

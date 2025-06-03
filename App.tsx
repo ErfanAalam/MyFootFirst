@@ -1,6 +1,7 @@
 // App.tsx
 import React from 'react';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
@@ -13,7 +14,11 @@ const App = () => {
 
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: '503667392757-496lchn6jf0v7a53hqe0jkkq044b7m16.apps.googleusercontent.com', // Updated to match google-services.json
+      webClientId: Platform.select({
+        ios: 'YOUR_IOS_WEB_CLIENT_ID', // Replace with your iOS web client ID
+        android: '503667392757-496lchn6jf0v7a53hqe0jkkq044b7m16.apps.googleusercontent.com',
+        default: '503667392757-496lchn6jf0v7a53hqe0jkkq044b7m16.apps.googleusercontent.com',
+      }),
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });

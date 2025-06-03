@@ -71,7 +71,7 @@ const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
                 };
             case 'info':
                 return {
-                    primary: '#1A237E',
+                    primary: '#00843D',
                     icon: 'info-circle',
                 };
             default:
