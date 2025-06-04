@@ -33,7 +33,7 @@ const EcommerceScreen = () => {
 
         const fetchedCategories = snapshot.docs.map(doc => ({
           id: doc.id,
-          name: doc.id.charAt(0).toUpperCase() + doc.id.slice(1), // Capitalize first letter
+          name: doc.id.charAt(0).toUpperCase() + doc.id.slice(1), 
           imageUrl: doc.data().imageUrl
         }));
 

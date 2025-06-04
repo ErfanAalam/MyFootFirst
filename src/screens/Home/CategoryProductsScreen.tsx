@@ -110,6 +110,7 @@ const CategoryProductsScreen = () => {
                     priceValue: +convertedPrice,
                     discountedPrice: discountedPriceWithSymbol,
                     discountedPriceValue: discountedPriceValue,
+                    discountedPriceInEUR,
                     currency: currencyCode,
                 };
             });
@@ -171,31 +172,12 @@ const CategoryProductsScreen = () => {
                         </View>
                     )}
 
-                    {/* Wishlist Button */}
-                    {/* <TouchableOpacity style={styles.wishlistButton}>
-                        <Text style={styles.heartIcon}>♡</Text>
-                    </TouchableOpacity> */}
                 </View>
 
                 <View style={styles.cardContent}>
                     <Text style={styles.productTitle} numberOfLines={2}>
                         {item.title}
                     </Text>
-
-                    {/* Color indicators */}
-                    {/* {item.colors && item.colors.length > 0 && (
-                        <View style={styles.colorContainer}>
-                            {item.colors.slice(0, 4).map((color, index) => (
-                                <View
-                                    key={index}
-                                    style={[styles.colorDot, { backgroundColor: color.toLowerCase() }]}
-                                />
-                            ))}
-                            {item.colors.length > 4 && (
-                                <Text style={styles.moreColors}>+{item.colors.length - 4}</Text>
-                            )}
-                        </View>
-                    )} */}
 
                     <View style={styles.priceContainer}>
                         {item.discountedPrice ? (

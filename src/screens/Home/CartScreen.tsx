@@ -39,7 +39,6 @@ const CartScreen = () => {
   const { userData, updateUserStep } = useUser();
   const navigation = useNavigation<NavigationProps>();
   const route = useRoute();
-  // console.log(items)
 
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -165,7 +164,10 @@ const CartScreen = () => {
 
     let totalPrice = 0;
     items.forEach(item => {
-      totalPrice += item.price * item.quantity;
+
+      let itemPrice = item.discountedPriceInEUR || item.price;
+
+      totalPrice += itemPrice * item.quantity;
     });
 
     setLoading(true);
@@ -205,19 +207,20 @@ const CartScreen = () => {
       // Store insole products in users collection
       if (insoleProducts.length > 0) {
         const insoleOrderData = {
-          orderId, // Use userId as orderId for insoles
+          orderId,
           customerName: userData.firstName || 'Anonymous',
           dateOfOrder: Date.now(),
           products: insoleProducts.map(item => ({
             id: item.id,
             title: item.title,
-            price: item.price,
-            priceWithSymbol: item.newPrice,
+            price: item.discountedPriceInEUR || item.price,
+            priceWithSymbol: item.discountedPrice || item.newPrice,
             quantity: item.quantity,
             image: item.image,
-            totalPrice: item.price * item.quantity,
+            totalPrice: (item.discountedPriceInEUR || item.price) * item.quantity,
           })),
-          totalAmount: insoleProducts.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+          totalAmount: insoleProducts.reduce((sum, item) =>
+            sum + ((item.discountedPriceInEUR || item.price) * item.quantity), 0),
           orderStatus: 'pending',
           shippingAddress: selectedAddress,
         };
@@ -250,14 +253,15 @@ const CartScreen = () => {
           products: otherProducts.map(item => ({
             id: item.id,
             title: item.title,
-            color:item.color,
-            price: item.price,
-            priceWithSymbol: item.newPrice,
+            color: item.color,
+            price: item.discountedPriceValue || item.price,
+            priceWithSymbol: item.discountedPrice || item.newPrice,
             quantity: item.quantity,
             image: item.image,
-            totalPrice: item.price * item.quantity,
+            totalPrice: (item.discountedPriceValue || item.price) * item.quantity,
           })),
-          totalAmount: otherProducts.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+          totalAmount: otherProducts.reduce((sum, item) => 
+            sum + ((item.discountedPriceValue || item.price) * item.quantity), 0),
           orderStatus: 'pending',
           shippingAddress: selectedAddress,
         };
@@ -319,9 +323,31 @@ const CartScreen = () => {
   };
 
   const renderCartItem: ListRenderItem<CartItem> = ({ item }) => {
-    const calculateDiscountedTotal = () => {
-      if (!item.discountedPriceValue) return 0;
-      return (item.discountedPriceValue * item.quantity).toFixed(2);
+    const calculateItemTotal = () => {
+      // Use discountedPriceValue if available, otherwise use priceValue
+      const priceToUse = item.discountedPriceValue || item.priceValue;
+      return (priceToUse * item.quantity).toFixed(2);
+    };
+
+    const getPriceDisplay = () => {
+      const currencySymbol = (item.newPrice || item.discountedPrice || '$').slice(0, 1);
+      if (item.discountedPrice) {
+        return (
+          <>
+            <Text style={styles.originalPrice}>
+              {currencySymbol} {(item.priceValue * item.quantity).toFixed(2)}
+            </Text>
+            <Text style={styles.discountedPrice}>
+              {currencySymbol} {calculateItemTotal()}
+            </Text>
+          </>
+        );
+      }
+      return (
+        <Text style={styles.regularPrice}>
+          {currencySymbol} {calculateItemTotal()}
+        </Text>
+      );
     };
 
     return (
@@ -334,20 +360,7 @@ const CartScreen = () => {
         <View style={styles.productDetails}>
           <Text style={styles.productTitle}>{item.title}</Text>
           <View style={styles.priceContainer}>
-            {item.discountedPrice ? (
-              <>
-                <Text style={styles.originalPrice}>
-                  {(item.newPrice).slice(0, 1)} {(item.priceValue * item.quantity).toFixed(2)}
-                </Text>
-                <Text style={styles.discountedPrice}>
-                  {(item.discountedPrice).slice(0, 1)} {calculateDiscountedTotal()}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.regularPrice}>
-                {(item.newPrice).slice(0, 1)} {(item.priceValue * item.quantity).toFixed(2)}
-              </Text>
-            )}
+            {getPriceDisplay()}
           </View>
           <View style={styles.quantityContainer}>
             <TouchableOpacity

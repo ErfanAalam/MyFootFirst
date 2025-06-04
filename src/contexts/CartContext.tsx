@@ -10,6 +10,7 @@ export interface CartItem {
   newPrice: string;
   discountedPrice?: string;
   discountedPriceValue?: number;
+  discountedPriceInEUR?:number;
   image?: string;
   selectedImage?: string;
   color?: string;
@@ -103,6 +104,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           newPrice: product.newPrice,
           ...(product.discountedPrice && { discountedPrice: product.discountedPrice }),
           ...(product.discountedPriceValue && { discountedPriceValue: product.discountedPriceValue }),
+          ...(product.discountedPriceInEUR && {discountedPriceInEUR:product.discountedPriceInEUR}),
           image: product.selectedImage,
           size: product.selectedSize,
           quantity: quantity,
@@ -200,7 +202,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getCartTotal = () => {
     // Ensure we're working with a valid array
     if (!Array.isArray(items)) return 0;
-    return items.reduce((total, item) => total + ((item.priceValue || 0) * (item.quantity || 0)), 0);
+    return items.reduce((total, item) => {
+      // If item has discounted price, use discountedPriceValue, otherwise use priceValue
+      const itemPrice = item.discountedPriceValue || item.priceValue;
+      return total + (itemPrice * (item.quantity || 0));
+    }, 0);
   };
 
   // Calculate total items

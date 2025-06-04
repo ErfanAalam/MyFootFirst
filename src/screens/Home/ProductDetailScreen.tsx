@@ -156,7 +156,7 @@ const ProductDetailScreen = () => {
     <TouchableOpacity
       style={[
         styles.thumbnailContainer,
-        selectedImageIndex === index && styles.selectedThumbnail
+        selectedImageIndex === index && styles.selectedThumbnail,
       ]}
       onPress={() => handleImageSelect(index)}
     >
@@ -181,6 +181,8 @@ const ProductDetailScreen = () => {
       quantity,
       selectedImage: product.colorImages[selectedColor][selectedImageIndex],
     };
+
+    // console.log(cartProduct);
 
     addToCart(cartProduct);
     navigation.navigate('Cart', { fromProductDetail: true });
@@ -517,8 +519,8 @@ const styles = StyleSheet.create({
   selectedColorOption: {
     borderColor: '#00843D',
     borderWidth: 2,
-    padding:10,
-    borderRadius:20,
+    padding: 10,
+    borderRadius: 20,
   },
   selectedColorText: {
     fontWeight: '700',

@@ -36,7 +36,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'GoogleUserA
 const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) => {
     const navigation = useNavigation<NavigationProp>();
     const { firstName, surname, country, countryCode, phone, callingCode, dob } = route.params;
-    const { hasProfile, setHasProfile} = useUser();
+    const { hasProfile, setHasProfile } = useUser();
 
     const [selectedLevel, setSelectedLevel] = useState('active');
     const [alertModal, setAlertModal] = useState({
@@ -46,12 +46,6 @@ const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) =
         type: 'info' as 'success' | 'error' | 'info',
     });
 
-    // Date picker states
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [datePickerStep, setDatePickerStep] = useState('year');
-    const [selectedYear, setSelectedYear] = useState<number | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-    const [formattedDob, setFormattedDob] = useState(dob);
 
     const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setAlertModal({
@@ -81,141 +75,6 @@ const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) =
         },
     ];
 
-    const showDatePickerModal = () => {
-        Keyboard.dismiss();
-        setDatePickerStep('year');
-        setSelectedYear(null);
-        setSelectedMonth(null);
-        setShowDatePicker(true);
-    };
-
-    const handleDateConfirm = (date: Date) => {
-        const formattedDate = date.toLocaleDateString('en-GB');
-        setFormattedDob(formattedDate);
-        setShowDatePicker(false);
-    };
-
-    const generateYearOptions = () => {
-        const currentYear = new Date().getFullYear();
-        const years = [];
-        for (let i = currentYear; i >= currentYear - 100; i--) {
-            years.push(i);
-        }
-        return years;
-    };
-
-    const generateMonthOptions = () => {
-        return [
-            { value: 0, label: 'January' },
-            { value: 1, label: 'February' },
-            { value: 2, label: 'March' },
-            { value: 3, label: 'April' },
-            { value: 4, label: 'May' },
-            { value: 5, label: 'June' },
-            { value: 6, label: 'July' },
-            { value: 7, label: 'August' },
-            { value: 8, label: 'September' },
-            { value: 9, label: 'October' },
-            { value: 10, label: 'November' },
-            { value: 11, label: 'December' },
-        ];
-    };
-
-    const generateDayOptions = () => {
-        if (!selectedYear || selectedMonth === null) return [];
-        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-        return Array.from({ length: daysInMonth }, (_, i) => i + 1);
-    };
-
-    const handleYearSelect = (year: number) => {
-        setSelectedYear(year);
-        setDatePickerStep('month');
-    };
-
-    const handleMonthSelect = (month: number) => {
-        setSelectedMonth(month);
-        setDatePickerStep('day');
-    };
-
-    const handleDaySelect = (day: number) => {
-        if (selectedYear !== null && selectedMonth !== null) {
-            const date = new Date(selectedYear, selectedMonth, day);
-            handleDateConfirm(date);
-        }
-    };
-
-    const renderDatePickerContent = () => {
-        if (datePickerStep === 'year') {
-            return (
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Select Year</Text>
-                    <View style={styles.optionsContainer}>
-                        {generateYearOptions().map((year) => (
-                            <TouchableOpacity
-                                key={year}
-                                style={styles.optionButton}
-                                onPress={() => handleYearSelect(year)}
-                            >
-                                <Text style={styles.optionText}>{year}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={() => setShowDatePicker(false)}
-                    >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                </View>
-            );
-        } else if (datePickerStep === 'month') {
-            return (
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Select Month</Text>
-                    <View style={styles.optionsContainer}>
-                        {generateMonthOptions().map((month) => (
-                            <TouchableOpacity
-                                key={month.value}
-                                style={styles.optionButton}
-                                onPress={() => handleMonthSelect(month.value)}
-                            >
-                                <Text style={styles.optionText}>{month.label}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => setDatePickerStep('year')}
-                    >
-                        <Text style={styles.backButtonText}>Back</Text>
-                    </TouchableOpacity>
-                </View>
-            );
-        } else if (datePickerStep === 'day') {
-            return (
-                <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Select Day</Text>
-                    <View style={styles.optionsContainer}>
-                        {generateDayOptions().map((day) => (
-                            <TouchableOpacity
-                                key={day}
-                                style={styles.optionButton}
-                                onPress={() => handleDaySelect(day)}
-                            >
-                                <Text style={styles.optionText}>{day}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => setDatePickerStep('month')}
-                    >
-                        <Text style={styles.backButtonText}>Back</Text>
-                    </TouchableOpacity>
-                </View>
-            );
-        }
-    };
 
     const handleSubmit = async () => {
         try {
@@ -232,6 +91,7 @@ const GoogleUserActivity = ({ route }: { route: GoogleUserActivityRouteProp }) =
                 .doc(user.uid)
                 .set({
                     uid: user.uid,
+                    email: user.email, // Added email from auth
                     firstName,
                     surname,
                     country,

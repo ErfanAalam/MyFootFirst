@@ -589,7 +589,7 @@ const FootScanScreen = () => {
                 <View style={styles.overlay}>
                     {renderFootGuide()}
                     <View style={styles.floatingMessage}>
-                        <Text style={styles.floatingMessageText}>Please take the image from closer to get better quality</Text>
+                        <Text style={styles.floatingMessageText}>Position your foot closer to the camera for better quality. Avoid white floors for optimal results.</Text>
                     </View>
                 </View>
                 <TouchableOpacity
@@ -736,7 +736,6 @@ const FootScanScreen = () => {
                             allowsInlineMediaPlayback={true}
                             mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
                         />
-                        <Button title="Close" onPress={() => setShowWebView(false)} />
                     </Modal>
                 </View>
             </View>
@@ -1107,14 +1106,14 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        padding: 10,
+        padding: 4,
         borderRadius: 5,
-        width: '100%',
+        width: '110%',
         alignItems: 'center',
     },
     floatingMessageText: {
         color: 'white',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         textAlign: 'center',
     },

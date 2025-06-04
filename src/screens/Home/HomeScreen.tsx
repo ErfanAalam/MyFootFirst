@@ -41,23 +41,38 @@ const HomeScreen = () => {
   const [selectedFoot, setSelectedFoot] = useState<'left' | 'right'>('left');
   const [painPoints, setPainPoints] = useState<string[]>(['no-pain']);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [alertModal, setAlertModal] = useState({
+  const [alertModal, setAlertModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+    onClose?: () => void;
+  }>({
     visible: false,
     title: '',
     message: '',
-    type: 'info' as 'success' | 'error' | 'info',
+    type: 'info',
   });
 
-  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showAlert = (
+    title: string, 
+    message: string, 
+    type: 'success' | 'error' | 'info' = 'info',
+    onClose?: () => void
+  ) => {
     setAlertModal({
       visible: true,
       title,
       message,
       type,
+      onClose,
     });
   };
 
   const hideAlert = () => {
+    if (alertModal.onClose) {
+      alertModal.onClose();
+    }
     setAlertModal(prev => ({ ...prev, visible: false }));
   };
 
@@ -84,18 +99,39 @@ const HomeScreen = () => {
         return;
       }
 
-      const painPointsToStore = painPoints.includes('no-pain') && painPoints.length === 1 
-        ? [] 
-        : painPoints.filter(point => point !== 'no-pain');
+      const navigateToScan = () => {
+        const painPointsToStore = painPoints.includes('no-pain') && painPoints.length === 1
+          ? []
+          : painPoints.filter(point => point !== 'no-pain');
 
-      await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .update({
-          painPoints: painPointsToStore,
-        });
+        firestore()
+          .collection('users')
+          .doc(user.uid)
+          .update({
+            painPoints: painPointsToStore,
+          })
+          .then(() => {
+            navigation.navigate('FootScanScreen');
+          })
+          .catch((_error) => {
+            showAlert('Error', 'Failed to save pain points', 'error');
+          });
+      };
 
-      navigation.navigate('FootScanScreen');
+      // Show instruction alert before proceeding
+      showAlert(
+        'Important Instructions',
+        'Please take a close-up photo along with A4 page at bottom of your feet to ensure accurate data for custom orthotics',
+        'info',
+        navigateToScan
+      );
+
+      // Auto hide alert after 2 seconds
+      setTimeout(() => {
+        hideAlert();
+        navigation.navigate('FootScanScreen');
+      }, 5000);
+
     } catch (error) {
       showAlert('Error', 'Failed to save pain points', 'error');
     }
