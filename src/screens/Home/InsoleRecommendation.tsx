@@ -244,13 +244,15 @@ const InsoleRecommendation = () => {
   const handleImageSelect = (insoleType: InsoleType, imageUrl: string) => {
     setSelectedImages(prev => ({
       ...prev,
-      [insoleType]: imageUrl
+      [insoleType]: imageUrl,
     }));
   };
 
   // Function to handle adding insole to cart
   const handleAddToCart = async (insoleType: InsoleType) => {
-    if (!pricing) return;
+    if (!pricing) {
+      return;
+    }
 
     if (isDressInsole && (!shoeType || shoeType.trim().split(' ').length > 5)) {
       setShowShoeTypeError(true);
