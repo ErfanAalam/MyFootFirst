@@ -197,7 +197,7 @@ const InsoleRecommendation = () => {
       try {
         // Try to get pricing for the user's country
         const countryDoc = await firestore()
-          .collection('InsolePricing')
+          .collection('CInsolePricing')
           .doc(userData?.country)
           .get();
 
@@ -206,7 +206,7 @@ const InsoleRecommendation = () => {
         } else {
           // If country not found, use Ireland's pricing as fallback
           const irelandDoc = await firestore()
-            .collection('InsolePricing')
+            .collection('CInsolePricing')
             .doc('Ireland')
             .get();
 
@@ -311,7 +311,7 @@ const InsoleRecommendation = () => {
             shoeType: {
               type: 'Yes',
               shoesType: shoeType.trim(),
-            }
+            },
           }, { merge: true });
 
         } catch (error) {
